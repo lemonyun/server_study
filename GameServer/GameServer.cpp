@@ -5,77 +5,57 @@
 #include <atomic>
 #include <mutex>
 
+#include <windows.h>
 
-class SpinLock
-{
-public:
-	void lock()
-	{
-		//CAS (Compare-And-Swap)
-
-		bool expected = false;
-		bool desired = true;
-
-		//CAS 의사 코드
-		/*
-			if(_locked == expected)
-			{
-				expected = _locked;
-				_locked = desired;
-				return true;
-			}
-			else
-			{
-				expected = _locked;
-				return false;
-			}
-
-		*/
-
-		while (_locked.compare_exchange_strong(expected, desired) == false)
-		{
-			expected = false;
-		}
-	}
-
-	void unlock()
-	{
-		_locked.store(false);
-	}
-private:
-	atomic<bool> _locked = false;
-};
-
-int32 sum = 0;
 mutex m;
-SpinLock spinLock;
+queue<int32> q;
+HANDLE handle;
 
-void Add()
+void Producer()
 {
-	for (int32 i = 0; i < 100000; i++)
+	while (true)
 	{
-		lock_guard<SpinLock> guard(spinLock);
-		sum++;
+		{
+			unique_lock<mutex> lock(m);
+			q.push(100);
+		}
+
+		::SetEvent(handle); // 핸들의 상태를 Signal 상태로 바꿈
+		this_thread::sleep_for(100ms);
 	}
 }
 
-void Sub()
+void Consumer()
 {
-	for (int32 i = 0; i < 100000; i++)
+	while (true)
 	{
-		lock_guard<SpinLock> guard(spinLock);
-		sum--;
+		::WaitForSingleObject(handle, INFINITE);
+		// auto 이벤트의 경우 깨자마자 Signal이 non signal 상태로 자동으로 바뀜
+		// manual 이벤트의 경우 ::ResetEvent(handle)을 직접 호출해줘야 non signal 상태로 바뀜
+		unique_lock<mutex> lock(m);
+		if (q.empty() == false)
+		{
+			int32 data = q.front();
+			q.pop();
+			cout << data << endl;
+		}
 	}
 }
 
 int main()
 {
+	// 커널을 사용하기 때문에 너무 빈번하게 이벤트를 사용하면 오히려 안 좋을 수도 있다.
+	// 커널 오브젝트
+	// Usage Count
+	// Signal / Non-Signal (bool)
+	// Auto / Manual
+	handle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
-	std::thread t1(Add);
-	std::thread t2(Sub);
-
+	thread t1(Producer);
+	thread t2(Consumer);
+	
 	t1.join();
 	t2.join();
 
-	cout << sum << endl;
+	::CloseHandle(handle);
 }
