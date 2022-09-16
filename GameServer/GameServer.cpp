@@ -4,109 +4,78 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <windows.h>
 #include <future>
 
+atomic<bool> ready;
+int32 value;
 
-int64 result;
-
-int64 Calculate()
+void Producer()
 {
-	int64 sum = 0;
-
-	for (int32 i = 0; i < 100000; i++) {
-		sum += i;
-	}
-
-	return sum;
+	value = 10;
+	ready.store(true, memory_order_seq_cst);
 }
 
-void PromiseWorker(std::promise<string>&& promise)
+void Consumer()
 {
-	promise.set_value("Secret Message");
+	while (ready.load(memory_order::memory_order_seq_cst) == false)
+		;
+	cout << value << endl;
 }
 
-void TaskWorker(std::packaged_task<int64(void)> && task)
+int main()
 {
-	task();
-}
+	ready = false;
+	value = 0;
+	
+	thread t1(Producer);
+	thread t2(Consumer);
 
-int main() 
-{
-	// 동기 실행
-	// 상대적으로 짧은 작업에 대해서는 쓰레드를 직접 만들고 관리하여 사용하는 방법 대신에 future을 사용하면 좋다.
-	// mutex, conditional_variable까지 가지 않고 짧은 일회성 작업에 유용하다.
-	int64 sum = Calculate();
-	cout << sum << endl;
+	t1.join();
+	t2.join();
 
-	/*thread t(Calculate);
+	// Memory Model (정책)
+	// 1) Sequentially Consistent (seq_cst)
+	// ㄴ 가시성 문제 + 코드 재배치 문제 바로 해결
+	// 
+	// 2) Acquire-Release (consume, acquire, release, acq_rel)
+	// release 명령 이전의 메모리 명령들이 해당 명령 이후로 재배치 되는 것을 금지
+	// 그리고 acquire로 같은 변수를 읽는 쓰레드가 있다면 
+	// release 이전의 명령들이 acquire하는 순간에 관찰 가능 (가시성 보장)
+	// 
+	// 3) Relaxed (relaxed)
+	// 자율성 100%, 동일 객체에 대한 동일 관전 순서만 보장
+	// 거의 사용할 일이 없다.
 
-	t.join();*/
+	// 인텔 AMD의 경우 애초에 순차적 일관성을 보장하기 때문에
+	// seq_cst를 써도 별다른 부하가 없음
+	// ARM의 경우 꽤 차이가 있다.
+	
+	//atomic<bool> flag = false;
 
-	{
-		// async의 3가지 옵션
-		// 1) deferred -> 지연해서 실행하세요 (command 패턴)
-		// 2) async -> 별도의 쓰레드를 만들어서 실행하세요 
-		// 3) deffered | async -> 둘 중 알아서 골라주세요
+	//flag.is_lock_free();
 
-		std::future<int64> future = std::async(std::launch::async, Calculate);
-
-		// 딴짓
-
-		std:future_status status = future.wait_for(1ms); 
-		if (status == future_status::ready) // 작업의 완료 상태를 확인하는 방법 status가 ready면 완료된 것
-		{
-			//.. 
-		}
-
-		int64 sum = future.get(); // 결과물을 이제는 받고 싶다는 뜻
-
-		// 어떤 객체의 멤버 함수를 future로 호출하고 싶은 경우
-
-		// int64 sum = future.get();
-
-		//class Knight
-		//{
-		//public:
-		//	int64 GetHp() { return 100; }
-		//};
-
-		//Knight knight;
-		//std::future<int64> future2 = std::async(std::launch::async, &Knight::GetHp, knight); // knight.GetHp(); 
-
-		// future 객체를 만드는 다른 방법
-
-	}
-
-	// future를 사용하는 방법 2번째 : promise
-	// std::promise
-	// promise와 future는 짝을 맞춰 주어야 한다.
+	//// 이전 flag 값을 prev에 넣고, flag 값을 수정
 	//{
-	//	// 미래(std::future)에 결과물을 반환해줄거라 약속
-	//	std::promise<string> promise;
-	//	std::future<string> future = promise.get_future();
-
-	//	// promise는 다른 스레드에 넘겨준다.
-	//	thread t(PromiseWorker, std::move(promise));
-
-	//	string message = future.get();
-	//	cout << message << endl;
-
-	//	t.join(); 
-
+	//	bool prev = flag.exchange(true);
+	//	// bool prev = flag;
+	//	// flag = true;
 	//}
 
-	// future를 사용하는 방법 3번째 : packaged_task
-	// 이미 존재하는 쓰레드에 일감을 넘길 수 있다는 점이 첫번째 방법의 async와 다르다.
-	//std::packaged_task
-	{
-		std::packaged_task<int64(void)> task(Calculate);
-		std::future<int64> future = task.get_future();
+	//// CAS (Compare-And-Swap) 조건부 수정
+	//{
+	//	bool expected = false;
+	//	bool desired = true;
+	//	flag.compare_exchange_strong(expected, desired);
+	//}
 
-		std::thread t(TaskWorker, std::move(task));
-
-		int64 sum = future.get();
-		cout << sum << endl;
-
-		t.join();
-	}
+	//// flag.compare_exchange_weak
+	//// 비교 값이 같아서 true를 반환해야 하는데 어떤 상황에 의해 false를 반환할 수 있다.
+	//// flag.compare_exchange_strong
+	//// 정확한 값을 반환할 때까지 루프를 돈다.(부하가 있음)
 }
+
+
+// std::atomic_thread_fence(memory_order::memory_order_release)
+// 아토믹 객체를 사용하지 않고도 메모리 가시성 강제 + 메모리 재배치 금지하는 방법
+// 실전에서 사용할 일은 없다
