@@ -14,14 +14,14 @@
 // 네트워크 게임에서는 큐를 사용한다 클라이언트 쪽에서 보낸 패킷을 순차적으로 서버에서 처리하기 위해 큐를 사용한다.
 
 LockQueue<int32> q;
-LockStack<int32> s;
+LockFreeStack<int32> s;
 
 void Push()
 {
 	while (true)
 	{
 		int32 value = rand() % 100;
-		q.Push(value);
+		s.Push(value);
 
 		this_thread::sleep_for(10ms);
 	}
@@ -31,9 +31,9 @@ void Pop()
 {
 	while (true)
 	{
-		int32 data = 0;
-		if (q.TryPop(OUT data))
-			cout << data << endl;
+		auto data = s.TryPop();
+		if (data != nullptr)
+			cout << (*data) << endl;
 
 	}
 }
