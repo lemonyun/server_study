@@ -7,44 +7,35 @@
 #include <windows.h>
 #include <future>
 
-#include "ConcurrentQueue.h"
-#include "ConcurrentStack.h"
+thread_local int32 LThreadId = 0;
 
-// queue와 lock을 가지는 자료구조를 정의하기
-// 네트워크 게임에서는 큐를 사용한다 클라이언트 쪽에서 보낸 패킷을 순차적으로 서버에서 처리하기 위해 큐를 사용한다.
-
-LockQueue<int32> q;
-LockFreeStack<int32> s;
-
-void Push()
+void ThreadMain(int32 threadId)
 {
+	LThreadId = threadId;
+
 	while (true)
 	{
-		int32 value = rand() % 100;
-		s.Push(value);
-
-		this_thread::sleep_for(10ms);
-	}
-}
-
-void Pop()
-{
-	while (true)
-	{
-		auto data = s.TryPop();
-		if (data != nullptr)
-			cout << (*data) << endl;
-
+		cout << "Hi I am Thread " << LThreadId << endl;
+		this_thread::sleep_for(1s);
 	}
 }
 
 int main()
 {
-	thread t1(Push);
-	thread t2(Pop);
-	thread t3(Pop);
+	thread t;
+	t.get_id();
 
-	t1.join();
-	t2.join();
-	t3.join();
+	vector<thread> threads;
+
+	for (int32 i = 0; i < 10; i++)
+	{
+		int32 threadId = i + 1;
+		threads.push_back(thread(ThreadMain, threadId));
+	}
+
+	for (thread& t : threads)
+	{
+		t.join();
+	}
+
 }
