@@ -6,36 +6,24 @@
 #include <mutex>
 #include <windows.h>
 #include <future>
+#include "ThreadManager.h"
 
-thread_local int32 LThreadId = 0;
+CoreGlobal Core;
 
-void ThreadMain(int32 threadId)
+void ThreadMain()
 {
-	LThreadId = threadId;
-
-	while (true)
+	while (true) 
 	{
-		cout << "Hi I am Thread " << LThreadId << endl;
+		cout << "Hello I am thread ... " << LThreadId << endl;
 		this_thread::sleep_for(1s);
 	}
 }
-
 int main()
 {
-	thread t;
-	t.get_id();
-
-	vector<thread> threads;
-
-	for (int32 i = 0; i < 10; i++)
+	for (int32 i = 0; i < 5; i++)
 	{
-		int32 threadId = i + 1;
-		threads.push_back(thread(ThreadMain, threadId));
+		GThreadManager->Launch(ThreadMain);
 	}
 
-	for (thread& t : threads)
-	{
-		t.join();
-	}
-
+	GThreadManager->Join();
 }

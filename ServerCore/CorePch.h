@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Types.h"
+#include "CoreGlobal.h"
+#include "CoreTLS.h"
+#include "CoreGlobal.h"
 
 #include <vector>
 #include <list>
@@ -13,6 +16,3 @@
 
 #include <iostream>
 using namespace std;
-
-void HelloWorld();
-
