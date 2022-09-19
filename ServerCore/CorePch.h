@@ -3,7 +3,7 @@
 #include "Types.h"
 #include "CoreGlobal.h"
 #include "CoreTLS.h"
-#include "CoreGlobal.h"
+#include "CoreMacro.h"
 
 #include <vector>
 #include <list>
@@ -16,3 +16,6 @@
 
 #include <iostream>
 using namespace std;
+
+#include <Windows.h>
+#include "Lock.h"
