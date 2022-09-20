@@ -9,80 +9,55 @@
 #include "ThreadManager.h"
 #include "RefCounting.h"
 
-class Wraight : public RefCountable
+using KnightRef = TSharedPtr<class Knight>;
+using InventoryRef = TSharedPtr<class Inventory>;
+
+class Knight
 {
 public:
-	int _hp = 150;
-	int _posX = 0;
-	int _posY = 0;
+	Knight()
+	{
+		cout << "Knight()" << endl;
+	}
+
+	~Knight()
+	{
+		cout << "~Knight()" << endl;
+	}
+
 };
 
-using WraightRef = TSharedPtr<Wraight>;
-
-class Missile : public RefCountable
-{
-public:
-	void SetTarget(WraightRef target)
-	{
-		_target = target;
-		// 중간에 개입 가능
-		// target->AddRef();
-		Test(target);
-	}
-
-	void Test(WraightRef target)
-	{
-
-	}
-
-	bool Update()
-	{
-		if (_target == nullptr)
-			return true;
-
-		int posX = _target->_posX;
-		int posY = _target->_posY;
-
-		if (_target->_hp == 0)
-		{
-			_target->ReleaseRef();
-			_target = nullptr;
-			return true;
-		}
-		return false;
-	}
-
-	WraightRef _target = nullptr;
-};
-
-using MissileRef = TSharedPtr<Missile>;
 
 int main()
 {	
+	// 이전 방법(RefCountable 상속하는 방법)의 문제점
+	// 1) 이미 만들어진 클래스 대상으로 사용이 불가능하다 
+	// 2) 순환 (Cycle) 문제
 
-	WraightRef wraight(new Wraight());
-	wraight->ReleaseRef();
-	MissileRef missile(new Missile());
-	missile->ReleaseRef();
+	//shared_ptr
+	//weak_ptr 순환 문제를 해결하기 위함
+	// 객체의 클래스 멤버로 다른 객체를 가리킬때 weakptr을 사용하면 해결된다.
 
-	missile->SetTarget(wraight);
+	// [Knight | RefCountingBlock(uses, weak)]
+	// [T*][RefCountBlock*]
 
-	wraight->_hp = 0;
-	//wraight->ReleaseRef();
-	wraight = nullptr;
+	// RefCountBlock(useCount(shared), weakCount)
+	// weakptr은 객체의 수명 주기에는 영향을 주지는 않지만 레퍼런스 블록을 가리켜 객체가 사라졌는지 테스트할 수 있고, 
+	// 객체가 존재한다면 참조할 수도 있다.
 
-	while (true)
-	{
-		if (missile)
-		{
-			if (missile->Update())
-			{
-				//missile->ReleaseRef();
-				missile = nullptr;
-			}
-		}
-	}
 
-	//missile->ReleaseRef();
-	missile = nullptr;
+	shared_ptr<Knight> spr = make_shared<Knight>();
+	weak_ptr<Knight> wpr = spr;
+
+	bool expired = wpr.expired();
+	shared_ptr<Knight> spr2 = wpr.lock();
+
+
+
+	shared_ptr<Knight> spr2 = spr;
+
+
+
+
+	//k2->SetTarget(k1);
 }
