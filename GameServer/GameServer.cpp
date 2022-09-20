@@ -7,32 +7,82 @@
 #include <windows.h>
 #include <future>
 #include "ThreadManager.h"
+#include "RefCounting.h"
 
-#include "AccountManager.h"
-#include "PlayerManager.h"
+class Wraight : public RefCountable
+{
+public:
+	int _hp = 150;
+	int _posX = 0;
+	int _posY = 0;
+};
 
+using WraightRef = TSharedPtr<Wraight>;
+
+class Missile : public RefCountable
+{
+public:
+	void SetTarget(WraightRef target)
+	{
+		_target = target;
+		// 중간에 개입 가능
+		// target->AddRef();
+		Test(target);
+	}
+
+	void Test(WraightRef target)
+	{
+
+	}
+
+	bool Update()
+	{
+		if (_target == nullptr)
+			return true;
+
+		int posX = _target->_posX;
+		int posY = _target->_posY;
+
+		if (_target->_hp == 0)
+		{
+			_target->ReleaseRef();
+			_target = nullptr;
+			return true;
+		}
+		return false;
+	}
+
+	WraightRef _target = nullptr;
+};
+
+using MissileRef = TSharedPtr<Missile>;
 
 int main()
-{
-	GThreadManager->Launch([=]
-		{
-			while (true)
-			{
-				cout << "PlayerThenAccount" << endl;
-				GPlayerManager.PlayerThenAccount();
-				this_thread::sleep_for(100ms);
-			}
-		});
+{	
 
-	GThreadManager->Launch([=]
-		{
-			while (true)
-			{
-				cout << "AccountThenPlayer" << endl;
-				GAccountManager.AccountThenPlayer();
-				this_thread::sleep_for(100ms);
-			}
-		});
+	WraightRef wraight(new Wraight());
+	wraight->ReleaseRef();
+	MissileRef missile(new Missile());
+	missile->ReleaseRef();
 
-	GThreadManager->Join();
+	missile->SetTarget(wraight);
+
+	wraight->_hp = 0;
+	//wraight->ReleaseRef();
+	wraight = nullptr;
+
+	while (true)
+	{
+		if (missile)
+		{
+			if (missile->Update())
+			{
+				//missile->ReleaseRef();
+				missile = nullptr;
+			}
+		}
+	}
+
+	//missile->ReleaseRef();
+	missile = nullptr;
 }
