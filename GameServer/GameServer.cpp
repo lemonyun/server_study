@@ -35,19 +35,6 @@ public:
 		cout << "~Knight()" << endl;
 	}
 
-	/*void* operator new(size_t size)
-	{
-		cout << "Knight new! " << size << endl;
-		void* ptr = ::malloc(size);
-		return ptr;
-	}
-
-	void operator delete(void* ptr)
-	{
-		cout << "Knight delete!" << endl;
-		::free(ptr);
-
-	}*/
 
 	int32 _hp = 100;
 	int32 _mp = 100;
@@ -59,12 +46,21 @@ public:
 
 int main()
 {	
-	// 기대하고 있는 함수가 정의된 Allocator를 템플릿 두번째 인자로 지정해 줄 수 있다.
+	for (int32 i = 0; i < 5; i++) {
+		GThreadManager->Launch([]()
+			{
+				while (true)
+				{
+					Vector<Knight> v(10);
 
-	//vector<Knight, StlAllocator<Knight>> v(100);
+					Map<int32, Knight> m;
+					m[100] = Knight();
 
-	Vector<Knight> v(100);
+					this_thread::sleep_for(10ms);
+				}
+			});
+	}
 
-	map<int32, Knight> m;
-	m[100] = Knight();
+	GThreadManager->Join();
+
 }

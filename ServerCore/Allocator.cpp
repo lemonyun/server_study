@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Allocator.h"
+#include "Memory.h"
 
 void* BaseAllocator::Alloc(int32 size)
 {
@@ -26,4 +27,15 @@ void StompAllocator::Release(void* ptr)
 
 	::VirtualFree(reinterpret_cast<void*>(baseAddress), 0, MEM_RELEASE);
 }
+
+
+void* PoolAllocator::Alloc(int32 size)
+{
+	return GMemory->Allocate(size);
+}
+void PoolAllocator::Release(void* ptr)
+{
+	GMemory->Release(ptr);
+}
+
 
