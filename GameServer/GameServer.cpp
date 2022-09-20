@@ -10,7 +10,14 @@
 #include "RefCounting.h"
 #include "Memory.h"
 
-class Knight
+class Player
+{
+public:
+	Player() {}
+	virtual ~Player() {}
+
+};
+class Knight : public Player
 {
 public:
 	Knight()
@@ -51,8 +58,37 @@ public:
 
 int main()
 {	
-	Knight* knight = xnew<Knight>(100);
+	// 가상 메모리 기본
+	// 페이지 단위로 메모리를 할당하며 보안 레벨을 설정할 수 있다.
 
-	xdelete(knight);
+	//SYSTEM_INFO info;
+	//::GetSystemInfo(&info);
 
+	//info.dwPageSize; // 4KB
+	//info.dwAllocationGranularity; // 64KB
+
+	//Knight* k1 = new Knight();
+
+	// 위치, 크기, 타입, 페이지 정책을 인자로 받음
+	/*int* test = (int*)::VirtualAlloc(NULL, 4, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	*test = 100;
+
+	::VirtualFree(test, 0, MEM_RELEASE);*/
+
+	// *test = 200; // 크래쉬 발생! delete는 메모리 오염을 탐지 못할 수도 있다. delete한다고 해서
+	// 메모리를 바로 날리지 않을 수도 있다는 뜻
+
+
+	//Knight* knight = xnew<Knight>(100);
+	//xdelete(knight);
+
+	//knight->_hp = 100;
+
+	// 아래 구문은 오버 플로우 문제가 발생할 수 있는데 StompAllocator에서 못잡아줌
+	// 해결 방법 : Alloc에서 데이터 배치 오프셋을 옮긴다.
+	Knight* knight1 = (Knight*)xnew<Player>();
+
+	knight1->_hp = 100;
+	
+	xdelete(knight1);
 }
