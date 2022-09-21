@@ -11,106 +11,107 @@
 #include "Memory.h"
 #include "Allocator.h"
 
-using TL = TypeList<class Player, class Mage, class Knight, class Archer>;
-
-// LockFreeStack을 사용할 일이 있으면 마이크로소프트에서 제공하는 함수를 사용하자.
-class Player
-{
-	
-public:
-
-	Player()
-	{
-		INIT_TL(Player);
-	}
-
-	virtual ~Player() { }
-	
-	DECLARE_TL
-};
-
-class Knight : public Player
-{
-
-public:
-	Knight() { INIT_TL(Knight); }
-};
-
-class Mage : public Player
-{
-public:
-	Mage() { INIT_TL(Mage);
-	}
-};
-
-class Archer : public Player
-{
-public:
-	Archer() { INIT_TL(Archer); }
-};
-
-class Dog {
-
-};
-
-
+#include <WinSock2.h>
+#include <MSWSock.h>
+#include <WS2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
 
 int main()
-{	
-	/*TypeList<Mage, Knight>::Head whoAMI;
-	TypeList<Mage, Knight>::Tail whoAMI2;
+{
+    // 윈속 초기화 (ws2_32 라이브러리 초기화)
+    // 관련 정보가 wsaData에 채워짐
+    WSAData wsaData;
+    if (::WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        return 0;
 
-	TypeList<Mage, TypeList<Knight, Archer>>::Head whoAMI3;
-	TypeList<Mage, TypeList<Knight, Archer>>::Tail::Head whoAMI4;
-	TypeList<Mage, Knight, Archer>::Tail::Tail whoAMI5;
+    // ad : Address Family (AF_INET = IPv4, AF_INET6 = IPv6)
+    // type : TCP(SOCK_STREAM) vs UDP(SOCK_DGRAM)
+    // protocol : 0
+    // return : descriptor
 
-	int32 len1 = Length<TypeList<Mage, Knight>>::value;
-	int32 len2 = Length<TypeList<Mage, Knight, Archer>>::value;
+    SOCKET listenSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (listenSocket == INVALID_SOCKET)
+    {
+        int32 errCode = ::WSAGetLastError();
+        cout << "Socket ErrorCode : " << errCode << endl;
 
-	using TL = TypeList<Player, Mage, Knight, Archer>;
-	TypeAt<TL, 0>::Result whoAMI6;
-	TypeAt<TL, 1>::Result whoAMI7;
-	TypeAt<TL, 2>::Result whoAMI8;
-	
-	int index1 = IndexOf<TL, Mage>::value;
-	int index2 = IndexOf<TL, Archer>::value;
-	int index3 = IndexOf<TL, Dog>::value;
+        return 0;
+    }
 
-	bool canConvert1 = Conversion<Player, Knight>::exists;
-	bool canConvert2 = Conversion<Knight, Player>::exists;
-	bool canConvert3 = Conversion<Knight, Dog>::exists;*/
-	
-	// dynamic cast는 형변환이 불가능하면 nullptr을 반환
-	// dynamic cast는 너무 느려서 성능상의 이유로 static_cast를 씀
-	
-	// 언리얼 엔진의 경우 dynamic_cast를 직접적으로 활용하지 않고 내부적으로 지원해주는 cast를 사용한다.
+    //목적지 주소 (IPv4)
+    SOCKADDR_IN serverAddr;
+    ::memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverAddr.sin_port = ::htons(7777);
 
 
-	/*{
-		Player* player = new Knight();
+    if (::bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
+    {
+        int32 errCode = ::WSAGetLastError();
+        cout << "Bind ErrorCode : " << errCode << endl;
+        return 0;
+    }
 
-		bool canCast = CanCast<Knight*>(player);
-		Knight* knight = TypeCast<Knight*>(player);
+    // 영업 시작
+    if (::listen(listenSocket, 10) == SOCKET_ERROR)
+    {
+        int32 errCode = ::WSAGetLastError();
+        cout << "Listen ErrorCode : " << errCode << endl;
+        return 0;
+    }
 
-		delete player;
-	}*/
+    while (true)
+    {
+        SOCKADDR_IN clientAddr;
+        ::memset(&serverAddr, 0, sizeof(serverAddr));
+        int32 addrLen = sizeof(clientAddr);
+        SOCKET clientSocket = ::accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
 
-	{
-		shared_ptr<Player> player = MakeShared<Knight>();
+        // clientaddr와 clientsocket을 보관해두면 연결이 끊어지지 않는 한 클라이언트와 계속 통신할 수 있다.
 
-		shared_ptr<Archer> archer = TypeCast<Archer>(player);
+        if (clientSocket == INVALID_SOCKET)
+        {
+            int32 errCode = ::WSAGetLastError();
+            cout << "Accept ErrorCode : " << errCode << endl;
+            return 0;
+        }
 
-		bool canCast = CanCast<Mage>(player);
-	}
+        char ipAddress[16];
+        ::inet_ntop(AF_INET, &clientAddr.sin_addr, ipAddress, sizeof(ipAddress));
+        cout << "Client Connected! IP = " << ipAddress << endl;
 
-	for (int32 i = 0; i < 5; i++) {
-		GThreadManager->Launch([]() {
-			while (true)
-			{
-				
-			}
-		});
-	}	
+        while (true)
+        {
+            char recvBuffer[1000];
+            
+            this_thread::sleep_for(1s);
+            int32 recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+            if (recvLen <= 0)
+            {
+                int32 errCode = WSAGetLastError();
+                cout << "Recv ErrorCode : " << errCode << endl;
+                return 0;
+            }
 
-	GThreadManager->Join();
+            cout << "Recv Data! Data = " << recvBuffer << endl;
+            cout << "Recv Data! Len = " << recvLen << endl;
+            
+            /*
+            int32 resultCode = ::send(clientSocket, recvBuffer, recvLen, 0);
+            if (resultCode == SOCKET_ERROR)
+            {
+                int32 errCode = ::WSAGetLastError();
+                cout << "Send ErrorCode : " << errCode << endl;
+                return 0;
+            }*/
+
+        }
+    }
+
+
+
+    // 윈속 종료
+    ::WSACleanup();
+
 }
