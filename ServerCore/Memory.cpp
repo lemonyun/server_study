@@ -61,9 +61,10 @@ Memory::~Memory()
 void* Memory::Allocate(int32 size)
 {
 	MemoryHeader* header = nullptr;
-
 	const int32 allocSize = size + sizeof(MemoryHeader);
-
+#ifdef _STOMP
+	header = reinterpret_cast<MemoryHeader*>(StompAllocator::Alloc(allocSize));
+#else
 	if (allocSize > MAX_ALLOC_SIZE)
 	{
 		// 메모리 풀링 최대 크기를 벗어나면 일반 할당
@@ -74,7 +75,10 @@ void* Memory::Allocate(int32 size)
 	{
 		header = _poolTable[allocSize]->Pop();
 	}
+
+#endif
 	return MemoryHeader::AttachHeader(header, allocSize);
+
 }
 
 void Memory::Release(void* ptr)
@@ -85,6 +89,9 @@ void Memory::Release(void* ptr)
 
 	ASSERT_CRASH(allocSize > 0);
 
+#ifdef _STOMP
+	StompAllocator::Release(header);
+#else
 	if (allocSize > MAX_ALLOC_SIZE)
 	{
 		::_aligned_free(header);
@@ -94,4 +101,7 @@ void Memory::Release(void* ptr)
 		// 메모리 풀에 반납한다.
 		_poolTable[allocSize]->Push(header);
 	}
+#endif
+
+	
 }
