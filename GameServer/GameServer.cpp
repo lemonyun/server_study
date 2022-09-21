@@ -10,57 +10,58 @@
 #include "RefCounting.h"
 #include "Memory.h"
 #include "Allocator.h"
+#include "LockFreeStack.h"
 
-class Player
+DECLSPEC_ALIGN(16)
+class Data
 {
 public:
-	Player() {}
-	virtual ~Player() {}
+	SListEntry _entry;
 
-};
-class Knight : public Player
-{
-public:
-	Knight()
-	{
-		cout << "Knight()" << endl;
-	}
-	Knight(int32 hp) : _hp(hp)
-	{
-		cout << "Knight(hp)" << endl;
-	}
-
-	~Knight()
-	{
-		cout << "~Knight()" << endl;
-	}
-
-
-	int32 _hp = 100;
-	int32 _mp = 100;
-
+	int64 _rand = rand() % 1000;
 };
 
-// new operator overloading
-
+SListHeader* GHeader;
 
 int main()
 {	
-	for (int32 i = 0; i < 5; i++) {
-		GThreadManager->Launch([]()
+	GHeader = new SListHeader();
+	ASSERT_CRASH(((uint64)GHeader % 16) == 0);
+	InitializeHead(GHeader);
+
+	for (int32 i = 0; i < 3; i++) {
+		GThreadManager->Launch([]() {
+			while (true)
 			{
-				while (true)
+				Data* data = new Data();
+				ASSERT_CRASH(((uint64)data % 16) == 0);
+
+				PushEntrySList(GHeader, (SListEntry*)data);
+				this_thread::sleep_for(10ms);
+			}
+		});
+	}
+
+	for (int32 i = 0; i < 2; i++) {
+		GThreadManager->Launch([]() {
+			while (true)
+			{
+				Data* pop = nullptr;
+				pop = (Data*)PopEntrySList(GHeader);
+
+				if (pop)
 				{
-					Vector<Knight> v(10);
-
-					Map<int32, Knight> m;
-					m[100] = Knight();
-
-					this_thread::sleep_for(10ms);
+					cout << pop->_rand << endl;
+					delete pop;
 				}
-			});
+				else
+				{
+					cout << "NONE" << endl;
+				}
+				
+			}
+		});
 	}
 
 	GThreadManager->Join();
-
 }
