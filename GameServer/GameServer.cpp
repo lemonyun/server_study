@@ -26,12 +26,20 @@ const int32 BUFSIZE = 1000;
 
 struct Session
 {
+    WSAOVERLAPPED overlapped = {};
     SOCKET socket = INVALID_SOCKET;
     char recvBuffer[BUFSIZE] = {};
     int32 recvBytes = 0;
-    WSAOVERLAPPED overlapped = {};
 };
 
+void CALLBACK RecvCallback(DWORD error, DWORD recvLen, LPWSAOVERLAPPED overlapped, DWORD flags)
+{
+    cout << "Data Recv Len Callback = " << recvLen << endl;
+    // TODO : 에코 서버를 만든다면 여기서 WSASend를 호출
+
+    Session* session = (Session*)overlapped;
+
+}
 
 int main()
 {
@@ -70,42 +78,16 @@ int main()
 
     cout << "Accept" << endl;
 
-    //Overlapped IO (비동기 + 논블로킹)
-    // - Overlapped 함수를 건다 (WSARecv, WSASend)
-    // - Overlapped 함수가 성공했는지 확인 후
-    // -> 성공했으면 결과 얻어서 처리
-    // -> 실패했으면 사유를 확인 (pending(준비가 덜 됨)이면 완료 통지를 두가지 방식으로 받을 수 있음)
-    // 1. 이벤트 방식 2. 콜백 방식
-
-    // 1. 이벤트 방식
+   
     
-    // WSASend
-    // WSARecv
-    // AcceptEx // 라이브러리 준비가 필요
-    // ConnectEx
-
-    char sendBuffer[100];
-    WSABUF wsaBuf;
-    wsaBuf.buf = sendBuffer;
-    wsaBuf.len = 100;
-
-
-    // 1) 비동기 입출력 소켓
-    // 2) WSABUF 배열의 시작 주소 + 개수 (소켓에 두 개 이상의 버퍼를 연결 시키려는 이유 -> 쪼개져 있는 
-    // 버퍼들을 합쳐서 한 번에 보내주는 Scatter- Gather 기법을 사용하기 위함)
-    // 3) 보내고 받은 바이트 수
-    // 4) 상세 옵션인데 0
-    // 5) WSAOVERLAPPED 구조체 주소값, 이벤트 세팅을 위함
-    // 6) 입출력이 완료되면 OS가 호출할 콜백 함수
-    // 
-    // WSASend
-    // WSARecv
-    
-    // Overlapped 모델 (이벤트 기반)
-    // - 비동기 입출력 지원하는 소켓 생성 + 통지 받기 위한 이벤트 객체 생성
-    // - 비동기 입출력 함수 호출 (1에서 만든 이벤트 객체를 같이 넘겨줌)
+    // Overlapped 모델 (Completion Routine 콜백 기반)
+    // - 비동기 입출력 지원하는 소켓 생성
+    // - 비동기 입출력 함수 호출 (완료 루틴의 시작 주소 (함수 포인터)를 넘겨준다.)
     // - 비동기 작업이 바로 완료되지 않으면, pending 오류 코드가 반환됨
-    // 운영체제는 이벤트 객체를 통해 signaled 상태로 만들어서 완료 상태 알려줌
+    // - 비동기 입출력 함수 호출한 쓰레드를 -> Alertable Wait 상태로 만든다.
+    //  ex) WaitForSingleObjectEx, WaitForMultipleObjectsEx, SleepEx, WSAWaitForMultipleEvents
+    // - 비동기 I/O 완료되면 운영체제는 완료 루틴 호출
+    // - 완료 루틴 호출이 모두 끝나면 쓰레드는 Alertable Wait 상태에서 빠져 나온다.
     // - WSAWaitForMultipleEvents 함수 호출해서 이벤트 객체의 signal 판별
     // - WSAGetOverlappedResult 호출해서 비동기 입출력 결과 확인 및 데이터 처리
 
@@ -117,6 +99,36 @@ int main()
     // 5) 비동기 입출력 작업 관련 부가 정보 (거의 사용 안함)
     // WSAGetOverlappedResult
 
+    // 1) 오류 발생시 0 아닌값
+    // 2) 전송 바이트 수
+    // 3) 비동기 입출력 함수 호출 시 넘겨준 WSAOVERLAPPED 구조체의 주소값
+    // 4) 0
+    // void CompletionRoutine()
+
+
+    // Select 모델
+    // ㄴ 장점) 윈도우 / 리눅스 공통 (안드로이드 가능)
+    // ㄴ 단점) 성능 최하 (매번 소켓을 소켓 셋에 등록하는 비용), 소켓 셋 크기 64개 제한
+    // WSAAsyncSelect 모델 = 소켓 이벤트를 윈도우 메세지 형태로 처리. (일반 윈도우 메세지랑 같이 처리하니 성능이 ...)
+    
+    // WSAEventSelect 모델
+    // ㄴ 장점) 비교적 성능이 뛰어남
+    // ㄴ 단점) WSAWaitForMultipleEvents가 64개 제한
+    // Overlapped (이벤트 기반)
+    // ㄴ 장점) 성능
+    // ㄴ 단점) 64개 제한
+    // Overlapped (콜백 기반)
+    // ㄴ 장점) 성능
+    // ㄴ 단점) 모든 비동기 소켓 함수에서 사용 가능하진 않음 (accept) 빈번한 Alertable Wait으로 인한 성능 저하
+    // ㄴ APC 큐에 있는 일감을 다른 스레드가 처리 할 수 없다.
+    
+    // IOCP
+
+    // Reactor Pattern (~뒤늦게. 논블로킹 소켓. 소켓 상태 확인 후 -> 뒤늦게 recv send 호출)
+    // Proactor Pattern (~미리. 예약. Overlapped WSA~)
+
+
+    // 클라에서는 어떤 모델을 써도 상관이 없음
 
     while (true)
     {
@@ -153,13 +165,18 @@ int main()
             DWORD flags = 0;
             // wsaBuf 구조체 메모리는 recv 호출하고 날려도 되지만 recvBuffer는 건드리면 안됨
             // 비동기 방식의 recv 호출
-            if (::WSARecv(clientSocket, &wsaBuf, 1, &recvLen, &flags, &session.overlapped, nullptr) == SOCKET_ERROR)
+            if (::WSARecv(clientSocket, &wsaBuf, 1, &recvLen, &flags, &session.overlapped, RecvCallback) == SOCKET_ERROR)
             {
                 if (::WSAGetLastError() == WSA_IO_PENDING)
                 {
                     // Pending
-                    ::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, FALSE);
-                    ::WSAGetOverlappedResult(session.socket, &session.overlapped, &recvLen, FALSE, &flags);
+                    // Alertable Wait
+                    // Alertable Wait 상태에서 비동기 입출력이 완료되면 스레드가 가진 APC 큐에 있는 콜백 함수들이 호출된다.
+                    // 한 번 Alertable Wait 상태에 진입하면 APC 큐에 여러 개의 콜백 함수가 있다고 해도 모두 실행한다.
+                    // 완료 루틴이 모두 끝나면 Alertable Wait 상태에서 원래대로 돌아온다.
+                    // 후보 1 ::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, TRUE);
+                    ::SleepEx(INFINITE, TRUE);
+                    //  콜백 함수가 끝나면 여기로 되돌아 온다.
                 }
                 else
                 {
@@ -167,14 +184,16 @@ int main()
                     break;
                 }
             }
-
-            cout << "Data Recv Len = " << recvLen << endl;
+            else
+            {
+                cout << "Data Recv Len = " << recvLen << endl;  
+            }
 
 
         }
 
         ::closesocket(session.socket);
-        ::WSACloseEvent(wsaEvent);
+        //::WSACloseEvent(wsaEvent);
     }
 
 
