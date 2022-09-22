@@ -14,6 +14,8 @@ void HandleError(const char* cause)
 
 int main()
 {
+    this_thread::sleep_for(1s);
+
     WSAData wsaData;
     if (::WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
         return 0;
@@ -23,7 +25,7 @@ int main()
     if (clientSocket == INVALID_SOCKET)
         return 0;
 
-    u_long on = 1;
+    u_long on  = 1;
     if (::ioctlsocket(clientSocket, FIONBIO, &on) == INVALID_SOCKET)
         return 0;
 
