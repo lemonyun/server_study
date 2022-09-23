@@ -3,7 +3,7 @@
 
 LPFN_CONNECTEX		SocketUtils::ConnectEx = nullptr;
 LPFN_DISCONNECTEX	SocketUtils::DisConnectEx = nullptr;
-LPFN_ACCEPTEX		SocketUtils::AcceptConnectEx = nullptr;
+LPFN_ACCEPTEX		SocketUtils::AcceptEx = nullptr;
 
 void SocketUtils::Init()
 {
@@ -14,7 +14,7 @@ void SocketUtils::Init()
 	SOCKET dummySocket = CreateSocket();
 	ASSERT_CRASH(BindWindowsFunction(dummySocket, WSAID_CONNECTEX, reinterpret_cast<LPVOID*>(&ConnectEx)));
 	ASSERT_CRASH(BindWindowsFunction(dummySocket, WSAID_DISCONNECTEX, reinterpret_cast<LPVOID*>(&DisConnectEx)));
-	ASSERT_CRASH(BindWindowsFunction(dummySocket, WSAID_ACCEPTEX, reinterpret_cast<LPVOID*>(&AcceptConnectEx)));
+	ASSERT_CRASH(BindWindowsFunction(dummySocket, WSAID_ACCEPTEX, reinterpret_cast<LPVOID*>(&AcceptEx)));
 	Close(dummySocket);
 }
 

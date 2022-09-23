@@ -8,7 +8,7 @@ class SocketUtils
 public:
 	static LPFN_CONNECTEX		ConnectEx;
 	static LPFN_DISCONNECTEX	DisConnectEx;
-	static LPFN_ACCEPTEX		AcceptConnectEx;
+	static LPFN_ACCEPTEX		AcceptEx;
 
 public:
 	static void Init();
