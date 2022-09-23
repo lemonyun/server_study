@@ -31,6 +31,7 @@ public:
 -------------------*/
 class ConnectEvent : public IocpEvent
 {
+public:
 	ConnectEvent() : IocpEvent(EventType::Connect) { }
 };
 
@@ -55,6 +56,7 @@ public:
 
 class RecvEvent : public IocpEvent
 {
+public:
 	RecvEvent() : IocpEvent(EventType::Recv) { }
 };
 
@@ -64,5 +66,6 @@ class RecvEvent : public IocpEvent
 
 class SendEvent : public IocpEvent
 {
+public:
 	SendEvent() : IocpEvent(EventType::Send) { }
 };
