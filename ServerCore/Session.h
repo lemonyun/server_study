@@ -18,6 +18,7 @@ public:
 	/* 외부에서 사용*/
 
 	void Send(BYTE* buffer, int32 len);
+	bool Connect();
 	void Disconnect(const WCHAR* cause);
 	shared_ptr<Service> GetService() { return _service.lock(); }
 	void SetService(shared_ptr<Service> service) { _service = service; }
@@ -38,18 +39,20 @@ private:
 
 private:
 	/* 전송 관련*/
-	void RegisterConnect();
+	bool RegisterConnect();
+	bool RegisterDisconnect();
 	void RegisterRecv();
 	void RegisterSend(SendEvent* sendEvent);
 
 	void ProcessConnect();
+	void ProcessDisconnect();
 	void ProcessRecv(int32 numOfBytes);
 	void ProcessSend(SendEvent* sendEvent, int32 numOfBytes);
 
 	void HandleError(int32 errorCode);
 
 protected:
-	/* 콘텐츠 코드에서 오버로딩*/
+	/* 콘텐츠 코드에서 오버라이딩*/
 	virtual void OnConnected() {}
 	virtual int32 OnRecv(BYTE* buffer, int32 len) { return len; }
 	virtual void OnSend(int32 len) { }
@@ -71,7 +74,9 @@ private:
 	/* 송신 관련*/
 
 private:
-	/* IocpEvent 재사용*/
+	/* IocpEvent 재사용 (한번만 사용하는 아이들)*/
+	DisconnectEvent _disconnectEvent;
+	ConnectEvent _connectEvent;
 	RecvEvent _recvEvent;
 };
 

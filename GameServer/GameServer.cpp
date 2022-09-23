@@ -14,6 +14,11 @@
 class GameSession : public Session
 {
 public:
+	~GameSession()
+	{
+		cout << "~GameSession" << endl;
+	}
+
 	virtual int32 OnRecv(BYTE* buffer, int32 len) override
 	{
 		// Echo
