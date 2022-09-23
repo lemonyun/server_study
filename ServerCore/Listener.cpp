@@ -100,14 +100,10 @@ void Listener::ProcessAccept(AcceptEvent* acceptEvent)
 	if(SOCKET_ERROR == ::getpeername(session->GetSocket(), OUT reinterpret_cast<SOCKADDR*>(&sockAddress), &sizeOfSockAddr))
 	{
 		RegisterAccept(acceptEvent);
+		return;
 	}
 
 	session->SetNetAddress(NetAddress(sockAddress));
-
 	session->ProcessConnect();
-
-
-
-		//TODO
 	RegisterAccept(acceptEvent);
 }
