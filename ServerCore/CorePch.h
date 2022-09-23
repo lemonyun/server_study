@@ -6,12 +6,16 @@
 #include "CoreMacro.h"
 #include "Container.h"
 
-
+#include <Windows.h>
 #include <iostream>
 using namespace std;
+#include <WinSock2.h>
+#include <MSWSock.h>
+#include <WS2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
 
-#include <Windows.h>
 #include "Lock.h"
 
 #include "ObjectPool.h"
 #include "TypeCast.h"
+#include "Memory.h"
