@@ -3,7 +3,7 @@
 #include "SocketUtils.h"
 #include "Service.h"
 
-Session::Session()
+Session::Session() : _recvBuffer(BUFFER_SIZE)
 {
 	_socket = SocketUtils::CreateSocket();
 }
@@ -138,9 +138,13 @@ void Session::RegisterRecv()
 	_recvEvent.Init();
 	_recvEvent.owner = shared_from_this();
 
+	// TCP의 경우 데이터가 한번에 오지않고 나뉘어 올 수 있기 때문에 recv 버퍼가 덮어써질 수 있다.
+	// 패킷 데이터가 완전체로 도착했는지 안했는지 구분할 수 있다고 가정
+	// 나뉘어져 왔다면 기존에 있던 데이터를 남겨두고 덧붙여 데이터를 복사하는 방식으로 만들어야 함
+
 	WSABUF wsaBuf;
-	wsaBuf.buf = reinterpret_cast<char*>(_recvBuffer);
-	wsaBuf.len = len32(_recvBuffer);
+	wsaBuf.buf = reinterpret_cast<char*>(_recvBuffer.WritePos()); 
+	wsaBuf.len = _recvBuffer.FreeSize();
 
 	DWORD numOfBytes = 0;
 	DWORD flags = 0;
@@ -212,8 +216,24 @@ void Session::ProcessRecv(int32 numOfBytes)
 		return;
 	}
 
+	if (_recvBuffer.OnWrite(numOfBytes) == false)
+	{
+		Disconnect(L"OnWrite Overflow");
+		return;
+	}
+
+	int32 dataSize = _recvBuffer.DataSize();
+
 	// 컨텐츠 코드에서 오버라이딩
-	OnRecv(_recvBuffer, numOfBytes);
+	int32 processLen = OnRecv(_recvBuffer.ReadPos(), dataSize);
+
+	if (processLen < 0 || dataSize < processLen || _recvBuffer.OnRead(processLen) == false)
+	{
+		Disconnect(L"OnRead Overflow");
+		return;
+	}
+
+	_recvBuffer.Clean();
 
 	RegisterRecv();
 }
