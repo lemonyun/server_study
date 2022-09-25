@@ -15,13 +15,23 @@ Session::~Session()
 
 void Session::Send(SendBufferRef sendBuffer)
 {
-	// 현재 RegisterSend가 걸리지 않은 상태라면, 걸어준다.
-	WRITE_LOCK;
+	if (IsConnected() == false)
+		return;
 
-	_sendQueue.push(sendBuffer);
+	bool registerSend = false;
+	{
+		// 현재 RegisterSend가 걸리지 않은 상태라면, 걸어준다.
+		WRITE_LOCK;
 
-	if (_sendRegistered.exchange(true) == false)
+		_sendQueue.push(sendBuffer);
+
+		if (_sendRegistered.exchange(true) == false)
+			registerSend = true;
+	}
+
+	if (registerSend)
 		RegisterSend();
+	
 
 }
 // 다른 서버에 붙기 위한 용도
@@ -39,9 +49,6 @@ void Session::Disconnect(const WCHAR* cause)
 	//TEMP
 	wcout << "Disconnect : " << cause << endl;
 
-	OnDisconnected(); // 컨텐츠 코드에서 오버라이딩
-
-	GetService()->ReleaseSession(GetSessionRef());
 	RegisterDisconnect();
 }
 
@@ -229,6 +236,9 @@ void Session::ProcessConnect()
 void Session::ProcessDisconnect()
 {
 	_disconnectEvent.owner = nullptr;
+
+	OnDisconnected(); // 컨텐츠 코드에서 오버라이딩
+	GetService()->ReleaseSession(GetSessionRef());
 }
 
 void Session::ProcessRecv(int32 numOfBytes)
@@ -296,4 +306,46 @@ void Session::HandleError(int32 errorCode)
 		cout << "Handle Error : " << errorCode << endl;
 		break;
 	}
+}
+
+/*------------------
+	PacketSession
+------------------*/
+
+PacketSession::PacketSession()
+{
+
+}
+
+PacketSession::~PacketSession()
+{
+
+}
+
+// [size(2)][id(2)][data....] [size(2)][id(2)][data....]
+// TCP 특성상 데이터가 한번에 모두 오지 않을 수 있음
+int32 PacketSession::OnRecv(BYTE* buffer, int32 len)
+{
+	int32 processLen = 0;
+	while (true)
+	{
+		int32 dataSize = len - processLen;
+		// 최소한 헤더는 파실할 수 있어야 한다.
+
+		if (dataSize < sizeof(PacketHeader))
+			break;
+
+		PacketHeader header = *(reinterpret_cast<PacketHeader*>(&buffer[processLen]));
+		// 헤더에 기록된 패킷 크기를 파싱할 수 있어야 한다.
+		if (dataSize < header.size)
+			break;
+
+		// 패킷 조립 성공
+		OnRecvPacket(&buffer[processLen], header.size);
+
+		processLen += header.size;
+
+	}
+
+	return processLen;
 }
