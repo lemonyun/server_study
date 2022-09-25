@@ -22,11 +22,9 @@ public:
 	template<typename T>
 	T* Reserve();
 
+	// 보편 참조
 	template<typename T>
-	BufferWriter& operator<<(const T& dest);
-
-	template<typename T>
-	BufferWriter& operator<<(const T&& dest);
+	BufferWriter& operator<<(T&& src);
 
 
 private:
@@ -48,17 +46,12 @@ inline T* BufferWriter::Reserve()
 }
 
 template<typename T>
-inline BufferWriter& BufferWriter::operator<<(const T& src)
+inline BufferWriter& BufferWriter::operator<<(T&& src)
 {
-	*reinterpret_cast<T*>(&_buffer[_pos]) = src;
-	_pos += sizeof(T);
-	return *this;
-}
+	// 템플릿 타입에서 참조를 뺀다.
+	using DataType = std::remove_reference_t<T>;
 
-template<typename T>
-inline BufferWriter& BufferWriter::operator<<(const T&& src)
-{
-	*reinterpret_cast<T*>(&_buffer[_pos]) = std::move(src);
+	*reinterpret_cast<DataType*>(&_buffer[_pos]) = std::forward<DataType>(src);
 	_pos += sizeof(T);
 	return *this;
 }

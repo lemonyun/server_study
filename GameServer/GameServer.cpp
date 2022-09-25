@@ -14,6 +14,8 @@
 #include "GameSession.h"
 #include "GameSessionManager.h"
 #include "BufferWriter.h"
+#include "ServerPacketHandler.h"
+#include <tchar.h>
 
 int main()
 {
@@ -39,31 +41,15 @@ int main()
 	}
 
 
-
-	char sendData[1000] = "Hello Wrold";
+	char sendData[1000] = "가"; // CP949 = KS-X-1001 / KS-X-1003 (로마 1바이트, 한글 2바이트)
+	char sendData2[1000] = u8"가"; // UTF-8 = Unicode 문자 집합 사용, (로마 1바이트, 한글 3바이트)
+	WCHAR sendData3[1000] = L"가"; // UTF-16 = Unicode (한글/로마 2바이트)
+	TCHAR sendData4[1000] = _T("가"); // 프로젝트 속성-> 구성 속성 -> 문자 집합 설정에 따라 달라짐
 
 	while (true)
 	{
-		SendBufferRef sendBuffer = GSendBufferManager->Open(4096);
-
-		BufferWriter bw(sendBuffer->Buffer(), 4096);
-
-		// 패킷 첫 위치에 헤더를 위한 공간을 예약
-		PacketHeader* header = bw.Reserve<PacketHeader>();
-
-
-		// 데이터 기입 부분
-		//id(uint64), 체력(uint32), 공격력(uint16)
-		bw << (uint64)1001 << (uint32)100 << (uint16)10;
-		// 가변길이 데이터 기입
-		bw.Write(sendData, sizeof(sendData));
-
-		// 헤더 기입 부분
-		header->size = bw.WriteSize();
-		header->id = 1; // Hello Msg // 프로토콜 ID // 패킷 ID
-
-
-		sendBuffer->Close(bw.WriteSize());
+		vector<BuffData> buffs{ BuffData {100, 1.5f} , BuffData {200, 2.3f}, BuffData{300, 0.7f} };
+		SendBufferRef sendBuffer = ServerPacketHandler::Make_S_TEST(1001, 100, 10, buffs, L"안녕하세요");
 
 		GSessionManager->Broadcast(sendBuffer);
 
