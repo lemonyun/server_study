@@ -4,6 +4,7 @@
 
 #include "Service.h"
 #include "Session.h"
+#include "BufferReader.h"
 
 char sendData[] = "Hello Wrold";
 
@@ -23,21 +24,26 @@ public:
 
 	virtual int32 OnRecvPacket(BYTE* buffer, int32 len) override
 	{
-		// Echo
-		PacketHeader header = *((PacketHeader*)buffer);
-		//cout << "Packet ID : " << header.id << "Size : " << header.size << endl;
+		BufferReader br(buffer, len);
+		
+		PacketHeader header;
+		// header에 buffer의 헤더 부분 추출, _pos가 헤더 크기만큼 이동
+		br >> header;
+
+		uint64 id;
+		uint32 hp;
+		uint16 attack;
+
+		// 보내는 쪽에서의 데이터 보내는 순서와 맞춰줘야 한다.
+		br >> id >> hp >> attack;
+
+		cout << "ID: " << id << "HP : " << hp << "ATT :" << attack << endl;
 
 		char recvBuffer[4096];
-		::memcpy(recvBuffer, &buffer[4], header.size - sizeof(PacketHeader));
+		// 원래 가변 길이 데이터(sendData) 보낼때 몇개 있는지 보내줘야하는데 
+		br.Read(recvBuffer, header.size - sizeof(PacketHeader) - 8 - 4 - 2);
 		cout << recvBuffer << endl;
 
-		//this_thread::sleep_for(1s);
-
-		/*SendBufferRef sendBuffer = GSendBufferManager->Open(4096);
-		::memcpy(sendBuffer->Buffer(), sendData, sizeof(sendData));
-		sendBuffer->Close(sizeof(sendData));
-
-		Send(sendBuffer);*/
 		return len;
 	}
 
