@@ -17,8 +17,24 @@
 #include "ServerPacketHandler.h"
 #include <tchar.h>
 
+// 패킷 직렬화 (Serialization)
+// 메모리에 있는 데이터들을 바이트 배열로 바꾸는 것
+#pragma pack(1)
+struct PKT_S_TEST
+{
+	uint32 hp;
+	uint64 id;
+	uint16 attack;
+};
+#pragma pack()
+
 int main()
 {
+	PKT_S_TEST pkt;
+	pkt.hp = 1;
+	pkt.id = 2;
+	pkt.attack = 3;
+	  
 	GSessionManager = new GameSessionManager();
 
 	ServerServiceRef service = MakeShared<ServerService>(
