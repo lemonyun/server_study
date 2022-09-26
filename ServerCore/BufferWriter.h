@@ -20,7 +20,7 @@ public:
 	bool Write(void* src, uint32 len);
 
 	template<typename T>
-	T* Reserve();
+	T* Reserve(uint16 count = 1);
 
 	// 보편 참조
 	template<typename T>
@@ -35,13 +35,13 @@ private:
 };
 
 template<typename T>
-inline T* BufferWriter::Reserve()
+inline T* BufferWriter::Reserve(uint16 count)
 {
-	if (FreeSize() < sizeof(T))
+	if (FreeSize() < (sizeof(T) * count))
 		return nullptr;
 
 	T* ret = reinterpret_cast<T*>(&_buffer[_pos]);
-	_pos += sizeof(T);
+	_pos += (sizeof(T) * count);
 	return ret;
 }
 

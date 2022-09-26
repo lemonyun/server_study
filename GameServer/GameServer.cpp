@@ -17,24 +17,9 @@
 #include "ServerPacketHandler.h"
 #include <tchar.h>
 
-// 패킷 직렬화 (Serialization)
-// 메모리에 있는 데이터들을 바이트 배열로 바꾸는 것
-#pragma pack(1)
-struct PKT_S_TEST
-{
-	uint32 hp;
-	uint64 id;
-	uint16 attack;
-};
-#pragma pack()
-
 int main()
 {
-	PKT_S_TEST pkt;
-	pkt.hp = 1;
-	pkt.id = 2;
-	pkt.attack = 3;
-	  
+	
 	GSessionManager = new GameSessionManager();
 
 	ServerServiceRef service = MakeShared<ServerService>(
@@ -56,16 +41,36 @@ int main()
 			});
 	}
 
-
-	char sendData[1000] = "가"; // CP949 = KS-X-1001 / KS-X-1003 (로마 1바이트, 한글 2바이트)
-	char sendData2[1000] = u8"가"; // UTF-8 = Unicode 문자 집합 사용, (로마 1바이트, 한글 3바이트)
-	WCHAR sendData3[1000] = L"가"; // UTF-16 = Unicode (한글/로마 2바이트)
-	TCHAR sendData4[1000] = _T("가"); // 프로젝트 속성-> 구성 속성 -> 문자 집합 설정에 따라 달라짐
-
 	while (true)
 	{
-		vector<BuffData> buffs{ BuffData {100, 1.5f} , BuffData {200, 2.3f}, BuffData{300, 0.7f} };
-		SendBufferRef sendBuffer = ServerPacketHandler::Make_S_TEST(1001, 100, 10, buffs, L"안녕하세요");
+		// [PKT_S_TEST]
+		PKT_S_TEST_WRITE pktWriter(1001, 100, 10);
+
+		// [PKT_S_TEST][BuffsListItem BuffsListItem BuffsListItem]
+		// 데이터를 바로 밀어넣는다는 장점이 있지만 사용하기에는 불편하다
+		PKT_S_TEST_WRITE::BuffsList buffList = pktWriter.ReserveBuffList(3);
+	
+		buffList[0] = { 100, 1.5f };
+		buffList[1] = { 200, 2.3f };
+		buffList[2] = { 300, 0.7f };
+
+		PKT_S_TEST_WRITE::BuffsVictimsList vic0 = pktWriter.ReserveBuffsVictimsList(&buffList[0], 3);
+		{
+			vic0[0] = 1000;
+			vic0[1] = 2000;
+			vic0[2] = 3000;
+		}
+		PKT_S_TEST_WRITE::BuffsVictimsList vic1 = pktWriter.ReserveBuffsVictimsList(&buffList[1], 1);
+		{
+			vic1[0] = 1000;
+		}
+		PKT_S_TEST_WRITE::BuffsVictimsList vic2 = pktWriter.ReserveBuffsVictimsList(&buffList[2], 2);
+		{
+			vic2[0] = 3000;
+			vic2[1] = 5000;
+		}
+
+		SendBufferRef sendBuffer = pktWriter.CloseAndReturn();
 
 		GSessionManager->Broadcast(sendBuffer);
 
