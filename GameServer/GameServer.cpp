@@ -21,7 +21,8 @@
 
 int main()
 {
-	
+	ServerPacketHandler::Init();
+
 	GSessionManager = new GameSessionManager();
 
 	ServerServiceRef service = MakeShared<ServerService>(
