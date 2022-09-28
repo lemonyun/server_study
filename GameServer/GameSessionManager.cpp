@@ -2,7 +2,7 @@
 #include "GameSessionManager.h"
 #include "GameSession.h"
 
-
+GameSessionManager GSessionManager;
 
 void GameSessionManager::Add(GameSessionRef session)
 {

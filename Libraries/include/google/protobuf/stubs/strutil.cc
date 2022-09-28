@@ -1272,8 +1272,8 @@ char* DoubleToBuffer(double value, char* buffer) {
   // truncated to a double.
   volatile double parsed_value = internal::NoLocaleStrtod(buffer, nullptr);
   if (parsed_value != value) {
-    snprintf_result =
-        snprintf(buffer, kDoubleToBufferSize, "%.*g", DBL_DIG + 2, value);
+    int snprintf_result =
+      snprintf(buffer, kDoubleToBufferSize, "%.*g", DBL_DIG+2, value);
 
     // Should never overflow; see above.
     GOOGLE_DCHECK(snprintf_result > 0 && snprintf_result < kDoubleToBufferSize);
@@ -1287,7 +1287,7 @@ static int memcasecmp(const char *s1, const char *s2, size_t len) {
   const unsigned char *us1 = reinterpret_cast<const unsigned char *>(s1);
   const unsigned char *us2 = reinterpret_cast<const unsigned char *>(s2);
 
-  for (size_t i = 0; i < len; i++) {
+  for ( int i = 0; i < len; i++ ) {
     const int diff =
       static_cast<int>(static_cast<unsigned char>(ascii_tolower(us1[i]))) -
       static_cast<int>(static_cast<unsigned char>(ascii_tolower(us2[i])));
@@ -1384,8 +1384,8 @@ char* FloatToBuffer(float value, char* buffer) {
 
   float parsed_value;
   if (!safe_strtof(buffer, &parsed_value) || parsed_value != value) {
-    snprintf_result =
-        snprintf(buffer, kFloatToBufferSize, "%.*g", FLT_DIG + 3, value);
+    int snprintf_result =
+      snprintf(buffer, kFloatToBufferSize, "%.*g", FLT_DIG+3, value);
 
     // Should never overflow; see above.
     GOOGLE_DCHECK(snprintf_result > 0 && snprintf_result < kFloatToBufferSize);
@@ -1405,7 +1405,7 @@ AlphaNum::AlphaNum(strings::Hex hex) {
   // We accomplish minimum width by OR'ing in 0x10000 to the user's value,
   // where 0x10000 is the smallest hex number that is as wide as the user
   // asked for.
-  uint64 mask = (static_cast<uint64>(1) << ((width - 1) * 4)) | value;
+  uint64 mask = ((static_cast<uint64>(1) << (width - 1) * 4)) | value;
   static const char hexdigits[] = "0123456789abcdef";
   do {
     *--writer = hexdigits[value & 0xF];
@@ -2101,7 +2101,7 @@ int Base64EscapeInternal(const unsigned char *src, int szsrc,
   char *limit_dest = dest + szdest;
   const unsigned char *limit_src = src + szsrc;
 
-  // Three bytes of data encodes to four characters of ciphertext.
+  // Three bytes of data encodes to four characters of cyphertext.
   // So we can pump through three-byte chunks atomically.
   while (cur_src < limit_src - 3) {  // keep going as long as we have >= 32 bits
     uint32 in = BigEndian::Load32(cur_src) >> 8;
@@ -2128,7 +2128,7 @@ int Base64EscapeInternal(const unsigned char *src, int szsrc,
       break;
     case 1: {
       // One byte left: this encodes to two characters, and (optionally)
-      // two pad characters to round out the four-character cipherblock.
+      // two pad characters to round out the four-character cypherblock.
       if ((szdest -= 2) < 0) return 0;
       uint32 in = cur_src[0];
       cur_dest[0] = base64[in >> 2];
@@ -2145,7 +2145,7 @@ int Base64EscapeInternal(const unsigned char *src, int szsrc,
     }
     case 2: {
       // Two bytes left: this encodes to three characters, and (optionally)
-      // one pad character to round out the four-character cipherblock.
+      // one pad character to round out the four-character cypherblock.
       if ((szdest -= 3) < 0) return 0;
       uint32 in = BigEndian::Load16(cur_src);
       cur_dest[0] = base64[in >> 10];

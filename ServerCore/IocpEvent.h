@@ -1,4 +1,5 @@
 #pragma once
+
 class Session;
 
 enum class EventType : uint8
@@ -6,63 +7,63 @@ enum class EventType : uint8
 	Connect,
 	Disconnect,
 	Accept,
+	//PreRecv,
 	Recv,
-	Send,
+	Send
 };
 
-/*-----------------
+/*--------------
 	IocpEvent
------------------*/
+---------------*/
 
 class IocpEvent : public OVERLAPPED
 {
 public:
 	IocpEvent(EventType type);
 
-	void Init();
-	EventType GetType() { return eventType; }
+	void			Init();
 
 public:
-	EventType eventType;
-	IocpObjectRef owner;
+	EventType		eventType;
+	IocpObjectRef	owner;
 };
 
-/*----------------------
-	Connect Event
--------------------*/
+/*----------------
+	ConnectEvent
+-----------------*/
+
 class ConnectEvent : public IocpEvent
 {
 public:
 	ConnectEvent() : IocpEvent(EventType::Connect) { }
 };
 
-/*----------------------
-	Disconnect Event
--------------------*/
+/*--------------------
+	DisconnectEvent
+----------------------*/
+
 class DisconnectEvent : public IocpEvent
 {
 public:
 	DisconnectEvent() : IocpEvent(EventType::Disconnect) { }
 };
 
-/*----------------------
-	Accept Event
--------------------*/
+/*----------------
+	AcceptEvent
+-----------------*/
+
 class AcceptEvent : public IocpEvent
 {
 public:
-	AcceptEvent() : IocpEvent(EventType::Accept) {}
-	
-public:
-	SessionRef session = nullptr;
-	// TODO
+	AcceptEvent() : IocpEvent(EventType::Accept) { }
 
+public:
+	SessionRef	session = nullptr;
 };
 
-/*----------------------
-	Recv Event
--------------------*/
-
+/*----------------
+	RecvEvent
+-----------------*/
 
 class RecvEvent : public IocpEvent
 {
@@ -70,14 +71,14 @@ public:
 	RecvEvent() : IocpEvent(EventType::Recv) { }
 };
 
-/*----------------------
-	Send Event
--------------------*/
+/*----------------
+	SendEvent
+-----------------*/
 
 class SendEvent : public IocpEvent
 {
 public:
 	SendEvent() : IocpEvent(EventType::Send) { }
-
+	 
 	Vector<SendBufferRef> sendBuffers;
 };

@@ -3,8 +3,13 @@
 #include "CoreTLS.h"
 #include "CoreGlobal.h"
 
+/*------------------
+	ThreadManager
+-------------------*/
+
 ThreadManager::ThreadManager()
 {
+	// Main Thread
 	InitTLS();
 }
 
@@ -31,7 +36,6 @@ void ThreadManager::Join()
 	{
 		if (t.joinable())
 			t.join();
-
 	}
 	_threads.clear();
 }

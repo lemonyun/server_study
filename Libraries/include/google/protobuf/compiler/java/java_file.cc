@@ -37,11 +37,6 @@
 #include <memory>
 #include <set>
 
-#include <google/protobuf/compiler/code_generator.h>
-#include <google/protobuf/io/printer.h>
-#include <google/protobuf/io/zero_copy_stream.h>
-#include <google/protobuf/dynamic_message.h>
-#include <google/protobuf/stubs/strutil.h>
 #include <google/protobuf/compiler/java/java_context.h>
 #include <google/protobuf/compiler/java/java_enum.h>
 #include <google/protobuf/compiler/java/java_enum_lite.h>
@@ -52,7 +47,12 @@
 #include <google/protobuf/compiler/java/java_name_resolver.h>
 #include <google/protobuf/compiler/java/java_service.h>
 #include <google/protobuf/compiler/java/java_shared_code_generator.h>
+#include <google/protobuf/compiler/code_generator.h>
 #include <google/protobuf/descriptor.pb.h>
+#include <google/protobuf/io/printer.h>
+#include <google/protobuf/io/zero_copy_stream.h>
+#include <google/protobuf/dynamic_message.h>
+#include <google/protobuf/stubs/strutil.h>
 
 namespace google {
 namespace protobuf {
@@ -686,7 +686,7 @@ void FileGenerator::GenerateKotlinSiblings(
   for (int i = 0; i < file_->message_type_count(); i++) {
     const Descriptor* descriptor = file_->message_type(i);
     MessageGenerator* generator = message_generators_[i].get();
-    auto open_file = [context](const std::string& filename) {
+    auto open_file = [context](const string& filename) {
       return std::unique_ptr<io::ZeroCopyOutputStream>(context->Open(filename));
     };
     std::string filename = package_dir + descriptor->name() + "Kt.kt";

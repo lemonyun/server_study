@@ -37,7 +37,6 @@
 
 #include <map>
 #include <string>
-
 #include <google/protobuf/compiler/java/java_field.h>
 #include <google/protobuf/compiler/java/java_message.h>
 
@@ -49,14 +48,14 @@ namespace java {
 class ImmutableMessageLiteGenerator : public MessageGenerator {
  public:
   ImmutableMessageLiteGenerator(const Descriptor* descriptor, Context* context);
-  ~ImmutableMessageLiteGenerator() override;
+  virtual ~ImmutableMessageLiteGenerator();
 
-  void Generate(io::Printer* printer) override;
-  void GenerateInterface(io::Printer* printer) override;
-  void GenerateExtensionRegistrationCode(io::Printer* printer) override;
-  void GenerateStaticVariables(io::Printer* printer,
-                               int* bytecode_estimate) override;
-  int GenerateStaticVariableInitializers(io::Printer* printer) override;
+  virtual void Generate(io::Printer* printer);
+  virtual void GenerateInterface(io::Printer* printer);
+  virtual void GenerateExtensionRegistrationCode(io::Printer* printer);
+  virtual void GenerateStaticVariables(io::Printer* printer,
+                                       int* bytecode_estimate);
+  virtual int GenerateStaticVariableInitializers(io::Printer* printer);
   void GenerateKotlinDsl(io::Printer* printer) const override;
   void GenerateKotlinMembers(io::Printer* printer) const override;
   void GenerateTopLevelKotlinMembers(io::Printer* printer) const override;
@@ -71,7 +70,6 @@ class ImmutableMessageLiteGenerator : public MessageGenerator {
   void GenerateConstructor(io::Printer* printer);
   void GenerateDynamicMethodNewBuildMessageInfo(io::Printer* printer);
   void GenerateKotlinExtensions(io::Printer* printer) const;
-  void GenerateKotlinOrNull(io::Printer* printer) const;
 
   Context* context_;
   ClassNameResolver* name_resolver_;

@@ -62,20 +62,20 @@ class ImmutableMessageFieldLiteGenerator : public ImmutableFieldLiteGenerator {
   explicit ImmutableMessageFieldLiteGenerator(const FieldDescriptor* descriptor,
                                               int messageBitIndex,
                                               Context* context);
-  ~ImmutableMessageFieldLiteGenerator() override;
+  ~ImmutableMessageFieldLiteGenerator();
 
   // implements ImmutableFieldLiteGenerator
   // ------------------------------------
-  int GetNumBitsForMessage() const override;
-  void GenerateInterfaceMembers(io::Printer* printer) const override;
-  void GenerateMembers(io::Printer* printer) const override;
-  void GenerateBuilderMembers(io::Printer* printer) const override;
-  void GenerateInitializationCode(io::Printer* printer) const override;
+  int GetNumBitsForMessage() const;
+  void GenerateInterfaceMembers(io::Printer* printer) const;
+  void GenerateMembers(io::Printer* printer) const;
+  void GenerateBuilderMembers(io::Printer* printer) const;
+  void GenerateInitializationCode(io::Printer* printer) const;
   void GenerateFieldInfo(io::Printer* printer,
-                         std::vector<uint16_t>* output) const override;
-  void GenerateKotlinDslMembers(io::Printer* printer) const override;
+                         std::vector<uint16_t>* output) const;
+  void GenerateKotlinDslMembers(io::Printer* printer) const;
 
-  std::string GetBoxedType() const override;
+  std::string GetBoxedType() const;
 
  protected:
   const FieldDescriptor* descriptor_;
@@ -85,7 +85,6 @@ class ImmutableMessageFieldLiteGenerator : public ImmutableFieldLiteGenerator {
 
  private:
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(ImmutableMessageFieldLiteGenerator);
-  void GenerateKotlinOrNull(io::Printer* printer) const;
 };
 
 class ImmutableMessageOneofFieldLiteGenerator
@@ -94,12 +93,12 @@ class ImmutableMessageOneofFieldLiteGenerator
   ImmutableMessageOneofFieldLiteGenerator(const FieldDescriptor* descriptor,
                                           int messageBitIndex,
                                           Context* context);
-  ~ImmutableMessageOneofFieldLiteGenerator() override;
+  ~ImmutableMessageOneofFieldLiteGenerator();
 
-  void GenerateMembers(io::Printer* printer) const override;
-  void GenerateBuilderMembers(io::Printer* printer) const override;
+  void GenerateMembers(io::Printer* printer) const;
+  void GenerateBuilderMembers(io::Printer* printer) const;
   void GenerateFieldInfo(io::Printer* printer,
-                         std::vector<uint16_t>* output) const override;
+                         std::vector<uint16_t>* output) const;
 
  private:
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(ImmutableMessageOneofFieldLiteGenerator);
@@ -110,19 +109,19 @@ class RepeatedImmutableMessageFieldLiteGenerator
  public:
   explicit RepeatedImmutableMessageFieldLiteGenerator(
       const FieldDescriptor* descriptor, int messageBitIndex, Context* context);
-  ~RepeatedImmutableMessageFieldLiteGenerator() override;
+  ~RepeatedImmutableMessageFieldLiteGenerator();
 
   // implements ImmutableFieldLiteGenerator ------------------------------------
-  int GetNumBitsForMessage() const override;
-  void GenerateInterfaceMembers(io::Printer* printer) const override;
-  void GenerateMembers(io::Printer* printer) const override;
-  void GenerateBuilderMembers(io::Printer* printer) const override;
-  void GenerateInitializationCode(io::Printer* printer) const override;
+  int GetNumBitsForMessage() const;
+  void GenerateInterfaceMembers(io::Printer* printer) const;
+  void GenerateMembers(io::Printer* printer) const;
+  void GenerateBuilderMembers(io::Printer* printer) const;
+  void GenerateInitializationCode(io::Printer* printer) const;
   void GenerateFieldInfo(io::Printer* printer,
-                         std::vector<uint16_t>* output) const override;
-  void GenerateKotlinDslMembers(io::Printer* printer) const override;
+                         std::vector<uint16_t>* output) const;
+  void GenerateKotlinDslMembers(io::Printer* printer) const;
 
-  std::string GetBoxedType() const override;
+  std::string GetBoxedType() const;
 
  protected:
   const FieldDescriptor* descriptor_;

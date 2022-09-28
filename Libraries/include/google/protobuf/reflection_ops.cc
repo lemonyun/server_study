@@ -38,13 +38,12 @@
 
 #include <google/protobuf/stubs/logging.h>
 #include <google/protobuf/stubs/common.h>
-#include <google/protobuf/descriptor.h>
 #include <google/protobuf/descriptor.pb.h>
+#include <google/protobuf/descriptor.h>
 #include <google/protobuf/map_field.h>
 #include <google/protobuf/map_field_inl.h>
 #include <google/protobuf/unknown_field_set.h>
 
-// Must be included last.
 #include <google/protobuf/port_def.inc>
 
 namespace google {
@@ -183,9 +182,7 @@ void ReflectionOps::Clear(Message* message) {
     reflection->ClearField(message, field);
   }
 
-  if (reflection->GetInternalMetadata(*message).have_unknown_fields()) {
-    reflection->MutableUnknownFields(message)->Clear();
-  }
+  reflection->MutableUnknownFields(message)->Clear();
 }
 
 bool ReflectionOps::IsInitialized(const Message& message, bool check_fields,
@@ -217,9 +214,9 @@ bool ReflectionOps::IsInitialized(const Message& message, bool check_fields,
                   reflection->GetMapData(message, field);
               if (map_field->IsMapValid()) {
                 MapIterator it(const_cast<Message*>(&message), field);
-                MapIterator end_map(const_cast<Message*>(&message), field);
-                for (map_field->MapBegin(&it), map_field->MapEnd(&end_map);
-                     it != end_map; ++it) {
+                MapIterator end(const_cast<Message*>(&message), field);
+                for (map_field->MapBegin(&it), map_field->MapEnd(&end);
+                     it != end; ++it) {
                   if (!it.GetValueRef().GetMessageValue().IsInitialized()) {
                     return false;
                   }
@@ -422,32 +419,23 @@ void ReflectionOps::FindInitializationErrors(const Message& message,
 }
 
 void GenericSwap(Message* lhs, Message* rhs) {
-#ifndef PROTOBUF_FORCE_COPY_IN_SWAP
-  GOOGLE_DCHECK(Arena::InternalGetOwningArena(lhs) !=
-         Arena::InternalGetOwningArena(rhs));
-  GOOGLE_DCHECK(Arena::InternalGetOwningArena(lhs) != nullptr ||
-         Arena::InternalGetOwningArena(rhs) != nullptr);
-#endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+  GOOGLE_DCHECK(Arena::InternalHelper<Message>::GetOwningArena(lhs) !=
+         Arena::InternalHelper<Message>::GetOwningArena(rhs));
   // At least one of these must have an arena, so make `rhs` point to it.
-  Arena* arena = Arena::InternalGetOwningArena(rhs);
+  Arena* arena = Arena::InternalHelper<Message>::GetOwningArena(rhs);
   if (arena == nullptr) {
     std::swap(lhs, rhs);
-    arena = Arena::InternalGetOwningArena(rhs);
+    arena = Arena::InternalHelper<Message>::GetOwningArena(rhs);
   }
 
   // Improve efficiency by placing the temporary on an arena so that messages
   // are copied twice rather than three times.
+  GOOGLE_DCHECK(arena != nullptr);
   Message* tmp = rhs->New(arena);
   tmp->CheckTypeAndMergeFrom(*lhs);
   lhs->Clear();
   lhs->CheckTypeAndMergeFrom(*rhs);
-#ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-  rhs->Clear();
-  rhs->CheckTypeAndMergeFrom(*tmp);
-  if (arena == nullptr) delete tmp;
-#else   // PROTOBUF_FORCE_COPY_IN_SWAP
   rhs->GetReflection()->Swap(tmp, rhs);
-#endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
 }
 
 }  // namespace internal

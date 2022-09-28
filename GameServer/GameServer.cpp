@@ -1,34 +1,22 @@
 ﻿#include "pch.h"
-#include <iostream>
-#include "CorePch.h"
-#include <thread>
-#include <atomic>
-#include <mutex>
-#include <windows.h>
-#include <future>
 #include "ThreadManager.h"
-
 #include "Service.h"
 #include "Session.h"
-
 #include "GameSession.h"
 #include "GameSessionManager.h"
 #include "BufferWriter.h"
-#include "ServerPacketHandler.h"
+#include "ClientPacketHandler.h"
 #include <tchar.h>
-
 #include "Protocol.pb.h"
 
 int main()
 {
-	ServerPacketHandler::Init();
-
-	GSessionManager = new GameSessionManager();
+	ClientPacketHandler::Init();
 
 	ServerServiceRef service = MakeShared<ServerService>(
 		NetAddress(L"127.0.0.1", 7777),
 		MakeShared<IocpCore>(),
-		MakeShared<GameSession>,
+		MakeShared<GameSession>, // TODO : SessionManager 등
 		100);
 
 	ASSERT_CRASH(service->Start());
@@ -40,9 +28,11 @@ int main()
 				while (true)
 				{
 					service->GetIocpCore()->Dispatch();
-				}
+				}				
 			});
-	}
+	}	
+
+	WCHAR sendData3[1000] = L"가"; // UTF16 = Unicode (한글/로마 2바이트)
 
 	while (true)
 	{
@@ -50,7 +40,6 @@ int main()
 		pkt.set_id(1000);
 		pkt.set_hp(100);
 		pkt.set_attack(10);
-
 		{
 			Protocol::BuffData* data = pkt.add_buffs();
 			data->set_buffid(100);
@@ -65,9 +54,8 @@ int main()
 			data->add_victims(2000);
 		}
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);
-
-		GSessionManager->Broadcast(sendBuffer);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);
+		GSessionManager.Broadcast(sendBuffer);
 
 		this_thread::sleep_for(250ms);
 	}

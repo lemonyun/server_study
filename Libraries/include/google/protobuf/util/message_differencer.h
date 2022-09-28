@@ -43,7 +43,6 @@
 #ifndef GOOGLE_PROTOBUF_UTIL_MESSAGE_DIFFERENCER_H__
 #define GOOGLE_PROTOBUF_UTIL_MESSAGE_DIFFERENCER_H__
 
-
 #include <functional>
 #include <map>
 #include <memory>
@@ -195,10 +194,6 @@ class PROTOBUF_EXPORT MessageDifferencer {
     // has not moved, "new_index" will have the same value as "index".
     int new_index = -1;
 
-    // If "field" is a map field, point to the map entry.
-    const Message* map_entry1 = nullptr;
-    const Message* map_entry2 = nullptr;
-
     // For unknown fields, these are the pointers to the UnknownFieldSet
     // containing the unknown fields. In certain cases (e.g. proto1's
     // MessageSet, or nested groups of unknown fields), these may differ from
@@ -211,6 +206,20 @@ class PROTOBUF_EXPORT MessageDifferencer {
     // reporting an addition or deletion.
     int unknown_field_index1 = -1;
     int unknown_field_index2 = -1;
+  };
+
+  // Class for processing Any deserialization.  This logic is used by both the
+  // MessageDifferencer and StreamReporter classes.
+  class UnpackAnyField {
+   private:
+    std::unique_ptr<DynamicMessageFactory> dynamic_message_factory_;
+
+   public:
+    UnpackAnyField() = default;
+    ~UnpackAnyField() = default;
+    // If "any" is of type google.protobuf.Any, extract its payload using
+    // DynamicMessageFactory and store in "data".
+    bool UnpackAny(const Message& any, std::unique_ptr<Message>* data);
   };
 
   // Abstract base class from which all MessageDifferencer
@@ -545,9 +554,6 @@ class PROTOBUF_EXPORT MessageDifferencer {
   // to compare fields in messages.
   void set_message_field_comparison(MessageFieldComparison comparison);
 
-  // Returns the current message field comparison used in this differencer.
-  MessageFieldComparison message_field_comparison() const;
-
   // Tells the differencer whether or not to report matches. This method must
   // be called before Compare. The default for a new differencer is false.
   void set_report_matches(bool report_matches) {
@@ -571,7 +577,7 @@ class PROTOBUF_EXPORT MessageDifferencer {
   void set_scope(Scope scope);
 
   // Returns the current scope used by this differencer.
-  Scope scope() const;
+  Scope scope();
 
   // DEPRECATED. Pass a DefaultFieldComparator instance instead.
   // Sets the type of comparison (as defined in the FloatComparison enumeration
@@ -587,7 +593,7 @@ class PROTOBUF_EXPORT MessageDifferencer {
   void set_repeated_field_comparison(RepeatedFieldComparison comparison);
 
   // Returns the current repeated field comparison used by this differencer.
-  RepeatedFieldComparison repeated_field_comparison() const;
+  RepeatedFieldComparison repeated_field_comparison();
 
   // Compares the two specified messages, returning true if they are the same,
   // false otherwise. If this method returns false, any changes between the
@@ -618,22 +624,6 @@ class PROTOBUF_EXPORT MessageDifferencer {
   // differences to any previously set reporters or output strings.
   void ReportDifferencesTo(Reporter* reporter);
 
- private:
-  // Class for processing Any deserialization.  This logic is used by both the
-  // MessageDifferencer and StreamReporter classes.
-  class UnpackAnyField {
-   private:
-    std::unique_ptr<DynamicMessageFactory> dynamic_message_factory_;
-
-   public:
-    UnpackAnyField() = default;
-    ~UnpackAnyField() = default;
-    // If "any" is of type google.protobuf.Any, extract its payload using
-    // DynamicMessageFactory and store in "data".
-    bool UnpackAny(const Message& any, std::unique_ptr<Message>* data);
-  };
-
- public:
   // An implementation of the MessageDifferencer Reporter that outputs
   // any differences found in human-readable form to the supplied
   // ZeroCopyOutputStream or Printer. If a printer is used, the delimiter
@@ -705,10 +695,12 @@ class PROTOBUF_EXPORT MessageDifferencer {
     // Just print a string
     void Print(const std::string& str);
 
-   private:
     // helper function for PrintPath that contains logic for printing maps
-    void PrintMapKey(bool left_side, const SpecificField& specific_field);
+    void PrintMapKey(const std::vector<SpecificField>& field_path,
+                     bool left_side, const SpecificField& specific_field,
+                     size_t target_field_index);
 
+   private:
     io::Printer* printer_;
     bool delete_printer_;
     bool report_modified_aggregates_;

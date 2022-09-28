@@ -49,7 +49,6 @@
 #include <gtest/gtest.h>
 #include <google/protobuf/stubs/casts.h>
 
-// Must be included last.
 #include <google/protobuf/port_def.inc>
 
 
@@ -742,7 +741,7 @@ TEST_1D(CodedStreamTest, ReadStringReservesMemoryOnTotalLimit, kBlockSizes) {
 
   {
     CodedInputStream coded_input(&input);
-    coded_input.SetTotalBytesLimit(sizeof(kRawBytes));
+    coded_input.SetTotalBytesLimit(sizeof(kRawBytes), sizeof(kRawBytes));
     EXPECT_EQ(sizeof(kRawBytes), coded_input.BytesUntilTotalBytesLimit());
 
     std::string str;
@@ -865,7 +864,7 @@ TEST_F(CodedStreamTest, ReadStringNoReservationSizeIsOverTheTotalBytesLimit) {
 
   {
     CodedInputStream coded_input(&input);
-    coded_input.SetTotalBytesLimit(16);
+    coded_input.SetTotalBytesLimit(16, 16);
 
     std::string str;
     EXPECT_FALSE(coded_input.ReadString(&str, strlen(kRawBytes)));
@@ -887,7 +886,7 @@ TEST_F(CodedStreamTest,
   {
     CodedInputStream coded_input(&input);
     coded_input.PushLimit(sizeof(buffer_));
-    coded_input.SetTotalBytesLimit(16);
+    coded_input.SetTotalBytesLimit(16, 16);
 
     std::string str;
     EXPECT_FALSE(coded_input.ReadString(&str, strlen(kRawBytes)));
@@ -909,7 +908,7 @@ TEST_F(CodedStreamTest,
   {
     CodedInputStream coded_input(&input);
     coded_input.PushLimit(16);
-    coded_input.SetTotalBytesLimit(sizeof(buffer_));
+    coded_input.SetTotalBytesLimit(sizeof(buffer_), sizeof(buffer_));
     EXPECT_EQ(sizeof(buffer_), coded_input.BytesUntilTotalBytesLimit());
 
     std::string str;
@@ -1181,7 +1180,7 @@ TEST_F(CodedStreamTest, OverflowLimit) {
 TEST_F(CodedStreamTest, TotalBytesLimit) {
   ArrayInputStream input(buffer_, sizeof(buffer_));
   CodedInputStream coded_input(&input);
-  coded_input.SetTotalBytesLimit(16);
+  coded_input.SetTotalBytesLimit(16, -1);
   EXPECT_EQ(16, coded_input.BytesUntilTotalBytesLimit());
 
   std::string str;
@@ -1201,7 +1200,7 @@ TEST_F(CodedStreamTest, TotalBytesLimit) {
                       "A protocol message was rejected because it was too big",
                       errors[0]);
 
-  coded_input.SetTotalBytesLimit(32);
+  coded_input.SetTotalBytesLimit(32, -1);
   EXPECT_EQ(16, coded_input.BytesUntilTotalBytesLimit());
   EXPECT_TRUE(coded_input.ReadString(&str, 16));
   EXPECT_EQ(0, coded_input.BytesUntilTotalBytesLimit());
@@ -1214,7 +1213,7 @@ TEST_F(CodedStreamTest, TotalBytesLimitNotValidMessageEnd) {
   CodedInputStream coded_input(&input);
 
   // Set both total_bytes_limit and a regular limit at 16 bytes.
-  coded_input.SetTotalBytesLimit(16);
+  coded_input.SetTotalBytesLimit(16, -1);
   CodedInputStream::Limit limit = coded_input.PushLimit(16);
 
   // Read 16 bytes.

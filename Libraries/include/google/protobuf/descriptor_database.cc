@@ -34,7 +34,6 @@
 
 #include <google/protobuf/descriptor_database.h>
 
-#include <algorithm>
 #include <set>
 
 #include <google/protobuf/descriptor.pb.h>
@@ -382,7 +381,7 @@ bool SimpleDescriptorDatabase::FindAllFileNames(
 
 bool SimpleDescriptorDatabase::MaybeCopy(const FileDescriptorProto* file,
                                          FileDescriptorProto* output) {
-  if (file == nullptr) return false;
+  if (file == NULL) return false;
   output->CopyFrom(*file);
   return true;
 }
@@ -584,14 +583,14 @@ bool EncodedDescriptorDatabase::FindFileContainingSymbol(
 bool EncodedDescriptorDatabase::FindNameOfFileContainingSymbol(
     const std::string& symbol_name, std::string* output) {
   auto encoded_file = index_->FindSymbol(symbol_name);
-  if (encoded_file.first == nullptr) return false;
+  if (encoded_file.first == NULL) return false;
 
   // Optimization:  The name should be the first field in the encoded message.
   //   Try to just read it directly.
-  io::CodedInputStream input(static_cast<const uint8_t*>(encoded_file.first),
+  io::CodedInputStream input(static_cast<const uint8*>(encoded_file.first),
                              encoded_file.second);
 
-  const uint32_t kNameTag = internal::WireFormatLite::MakeTag(
+  const uint32 kNameTag = internal::WireFormatLite::MakeTag(
       FileDescriptorProto::kNameFieldNumber,
       internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED);
 
@@ -872,7 +871,7 @@ bool EncodedDescriptorDatabase::FindAllFileNames(
 
 bool EncodedDescriptorDatabase::MaybeParse(
     std::pair<const void*, int> encoded_file, FileDescriptorProto* output) {
-  if (encoded_file.first == nullptr) return false;
+  if (encoded_file.first == NULL) return false;
   return output->ParseFromArray(encoded_file.first, encoded_file.second);
 }
 
@@ -894,7 +893,7 @@ DescriptorPoolDatabase::~DescriptorPoolDatabase() {}
 bool DescriptorPoolDatabase::FindFileByName(const std::string& filename,
                                             FileDescriptorProto* output) {
   const FileDescriptor* file = pool_.FindFileByName(filename);
-  if (file == nullptr) return false;
+  if (file == NULL) return false;
   output->Clear();
   file->CopyTo(output);
   return true;
@@ -903,7 +902,7 @@ bool DescriptorPoolDatabase::FindFileByName(const std::string& filename,
 bool DescriptorPoolDatabase::FindFileContainingSymbol(
     const std::string& symbol_name, FileDescriptorProto* output) {
   const FileDescriptor* file = pool_.FindFileContainingSymbol(symbol_name);
-  if (file == nullptr) return false;
+  if (file == NULL) return false;
   output->Clear();
   file->CopyTo(output);
   return true;
@@ -913,11 +912,11 @@ bool DescriptorPoolDatabase::FindFileContainingExtension(
     const std::string& containing_type, int field_number,
     FileDescriptorProto* output) {
   const Descriptor* extendee = pool_.FindMessageTypeByName(containing_type);
-  if (extendee == nullptr) return false;
+  if (extendee == NULL) return false;
 
   const FieldDescriptor* extension =
       pool_.FindExtensionByNumber(extendee, field_number);
-  if (extension == nullptr) return false;
+  if (extension == NULL) return false;
 
   output->Clear();
   extension->file()->CopyTo(output);
@@ -927,7 +926,7 @@ bool DescriptorPoolDatabase::FindFileContainingExtension(
 bool DescriptorPoolDatabase::FindAllExtensionNumbers(
     const std::string& extendee_type, std::vector<int>* output) {
   const Descriptor* extendee = pool_.FindMessageTypeByName(extendee_type);
-  if (extendee == nullptr) return false;
+  if (extendee == NULL) return false;
 
   std::vector<const FieldDescriptor*> extensions;
   pool_.FindAllExtensions(extendee, &extensions);
@@ -1027,22 +1026,6 @@ bool MergedDescriptorDatabase::FindAllExtensionNumbers(
   return success;
 }
 
-
-bool MergedDescriptorDatabase::FindAllFileNames(
-    std::vector<std::string>* output) {
-  bool implemented = false;
-  for (DescriptorDatabase* source : sources_) {
-    std::vector<std::string> source_output;
-    if (source->FindAllFileNames(&source_output)) {
-      output->reserve(output->size() + source_output.size());
-      for (auto& source : source_output) {
-        output->push_back(std::move(source));
-      }
-      implemented = true;
-    }
-  }
-  return implemented;
-}
 
 }  // namespace protobuf
 }  // namespace google

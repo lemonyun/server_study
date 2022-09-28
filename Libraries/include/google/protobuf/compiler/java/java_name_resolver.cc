@@ -33,10 +33,10 @@
 #include <map>
 #include <string>
 
-#include <google/protobuf/compiler/code_generator.h>
-#include <google/protobuf/stubs/substitute.h>
 #include <google/protobuf/compiler/java/java_helpers.h>
 #include <google/protobuf/compiler/java/java_names.h>
+#include <google/protobuf/compiler/code_generator.h>
+#include <google/protobuf/stubs/substitute.h>
 
 namespace google {
 namespace protobuf {
@@ -350,29 +350,6 @@ std::string ClassNameResolver::GetKotlinExtensionsClassName(
                           descriptor->file(), true, true, true);
 }
 
-std::string ClassNameResolver::GetJavaMutableClassName(
-    const Descriptor* descriptor) {
-  return GetJavaClassFullName(ClassNameWithoutPackage(descriptor, false),
-                              descriptor->file(), false);
-}
-
-std::string ClassNameResolver::GetJavaMutableClassName(
-    const EnumDescriptor* descriptor) {
-  return GetJavaClassFullName(ClassNameWithoutPackage(descriptor, false),
-                              descriptor->file(), false);
-}
-
-std::string ClassNameResolver::GetDowngradedFileClassName(
-    const FileDescriptor* file) {
-  return "Downgraded" + GetFileClassName(file, false);
-}
-
-std::string ClassNameResolver::GetDowngradedClassName(
-    const Descriptor* descriptor) {
-  return FileJavaPackage(descriptor->file()) + "." +
-         GetDowngradedFileClassName(descriptor->file()) + "." +
-         ClassNameWithoutPackage(descriptor, false);
-}
 
 }  // namespace java
 }  // namespace compiler

@@ -40,11 +40,6 @@
 #include <memory>
 #include <vector>
 
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/io/printer.h>
-#include <google/protobuf/wire_format.h>
-#include <google/protobuf/stubs/strutil.h>
-#include <google/protobuf/stubs/substitute.h>
 #include <google/protobuf/compiler/java/java_context.h>
 #include <google/protobuf/compiler/java/java_doc_comment.h>
 #include <google/protobuf/compiler/java/java_enum.h>
@@ -55,6 +50,11 @@
 #include <google/protobuf/compiler/java/java_message_builder_lite.h>
 #include <google/protobuf/compiler/java/java_name_resolver.h>
 #include <google/protobuf/descriptor.pb.h>
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/printer.h>
+#include <google/protobuf/wire_format.h>
+#include <google/protobuf/stubs/strutil.h>
+#include <google/protobuf/stubs/substitute.h>
 
 namespace google {
 namespace protobuf {
@@ -67,7 +67,7 @@ using internal::WireFormatLite;
 namespace {
 std::string MapValueImmutableClassdName(const Descriptor* descriptor,
                                         ClassNameResolver* name_resolver) {
-  const FieldDescriptor* value_field = descriptor->map_value();
+  const FieldDescriptor* value_field = descriptor->FindFieldByName("value");
   GOOGLE_CHECK_EQ(FieldDescriptor::TYPE_MESSAGE, value_field->type());
   return name_resolver->GetImmutableClassName(value_field->message_type());
 }
@@ -316,6 +316,7 @@ void ImmutableMessageGenerator::Generate(io::Printer* printer) {
   WriteMessageDocComment(printer, descriptor_);
   MaybePrintGeneratedAnnotation(context_, printer, descriptor_,
                                 /* immutable = */ true);
+
   // The builder_type stores the super type name of the nested Builder class.
   std::string builder_type;
   if (descriptor_->extension_range_count() > 0) {
@@ -1273,9 +1274,6 @@ void ImmutableMessageGenerator::GenerateParsingConstructor(
   printer->Print(
       "} catch (com.google.protobuf.InvalidProtocolBufferException e) {\n"
       "  throw e.setUnfinishedMessage(this);\n"
-      "} catch (com.google.protobuf.UninitializedMessageException e) {\n"
-      "  throw "
-      "e.asInvalidProtocolBufferException().setUnfinishedMessage(this);\n"
       "} catch (java.io.IOException e) {\n"
       "  throw new com.google.protobuf.InvalidProtocolBufferException(\n"
       "      e).setUnfinishedMessage(this);\n"
@@ -1369,51 +1367,16 @@ void ImmutableMessageGenerator::GenerateInitializers(io::Printer* printer) {
   }
 }
 
-// ===================================================================
-void ImmutableMessageGenerator::GenerateMutableCopy(io::Printer* printer) {
-  printer->Print(
-      "protected com.google.protobuf.MutableMessage\n"
-      "    internalMutableDefault() {\n"
-      "  return MutableDefaultLoader.get();\n"
-      "}\n"
-      "\n"
-      "private static final class MutableDefaultLoader {\n"
-      "  private static final java.lang.Object defaultOrRuntimeException;\n"
-      "  static {\n"
-      "    java.lang.Object local;\n"
-      "    try {\n"
-      "      local = internalMutableDefault(\"$mutable_name$\");\n"
-      "    } catch (java.lang.RuntimeException e) {\n"
-      "      local = e;\n"
-      "    }\n"
-      "    defaultOrRuntimeException = local;\n"
-      "  }\n"
-      "\n"
-      "  private MutableDefaultLoader() {}\n"
-      "\n"
-      "  public static com.google.protobuf.MutableMessage get() {\n"
-      "    if (defaultOrRuntimeException\n"
-      "         instanceof java.lang.RuntimeException) {\n"
-      "      throw (java.lang.RuntimeException) defaultOrRuntimeException;\n"
-      "    }\n"
-      "    return\n"
-      "        (com.google.protobuf.MutableMessage) "
-      "defaultOrRuntimeException;\n"
-      "  }\n"
-      "}\n",
-      "mutable_name", name_resolver_->GetJavaMutableClassName(descriptor_));
-}
-
 void ImmutableMessageGenerator::GenerateKotlinDsl(io::Printer* printer) const {
   printer->Print(
       "@kotlin.OptIn"
       "(com.google.protobuf.kotlin.OnlyForUseByGeneratedProtoCode::class)\n"
       "@com.google.protobuf.kotlin.ProtoDslMarker\n");
   printer->Print(
-      "public class Dsl private constructor(\n"
-      "  private val _builder: $message$.Builder\n"
+      "class Dsl private constructor(\n"
+      "  @kotlin.jvm.JvmField private val _builder: $message$.Builder\n"
       ") {\n"
-      "  public companion object {\n"
+      "  companion object {\n"
       "    @kotlin.jvm.JvmSynthetic\n"
       "    @kotlin.PublishedApi\n"
       "    internal fun _create(builder: $message$.Builder): Dsl = "
@@ -1435,10 +1398,10 @@ void ImmutableMessageGenerator::GenerateKotlinDsl(io::Printer* printer) const {
 
   for (auto oneof : oneofs_) {
     printer->Print(
-        "public val $oneof_name$Case: $message$.$oneof_capitalized_name$Case\n"
+        "val $oneof_name$Case: $message$.$oneof_capitalized_name$Case\n"
         "  @JvmName(\"get$oneof_capitalized_name$Case\")\n"
         "  get() = _builder.get$oneof_capitalized_name$Case()\n\n"
-        "public fun clear$oneof_capitalized_name$() {\n"
+        "fun clear$oneof_capitalized_name$() {\n"
         "  _builder.clear$oneof_capitalized_name$()\n"
         "}\n",
         "oneof_name", context_->GetOneofGeneratorInfo(oneof)->name,
@@ -1458,9 +1421,8 @@ void ImmutableMessageGenerator::GenerateKotlinDsl(io::Printer* printer) const {
 void ImmutableMessageGenerator::GenerateKotlinMembers(
     io::Printer* printer) const {
   printer->Print(
-      "@kotlin.jvm.JvmName(\"-initialize$camelcase_name$\")\n"
-      "public inline fun $camelcase_name$(block: $message_kt$.Dsl.() -> "
-      "kotlin.Unit): "
+      "@kotlin.jvm.JvmSynthetic\n"
+      "inline fun $camelcase_name$(block: $message_kt$.Dsl.() -> Unit): "
       "$message$ "
       "=\n"
       "  $message_kt$.Dsl._create($message$.newBuilder()).apply { block() "
@@ -1469,7 +1431,7 @@ void ImmutableMessageGenerator::GenerateKotlinMembers(
       "message_kt", name_resolver_->GetKotlinExtensionsClassName(descriptor_),
       "message", name_resolver_->GetClassName(descriptor_, true));
 
-  printer->Print("public object $name$Kt {\n", "name", descriptor_->name());
+  printer->Print("object $name$Kt {\n", "name", descriptor_->name());
   printer->Indent();
   GenerateKotlinDsl(printer);
   for (int i = 0; i < descriptor_->nested_type_count(); i++) {
@@ -1485,11 +1447,10 @@ void ImmutableMessageGenerator::GenerateTopLevelKotlinMembers(
     io::Printer* printer) const {
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "public inline fun $message$.copy(block: $message_kt$.Dsl.() -> "
-      "kotlin.Unit): "
+      "inline fun $message$.copy(block: $message_kt$.Dsl.() -> Unit): "
       "$message$ =\n"
       "  $message_kt$.Dsl._create(this.toBuilder()).apply { block() "
-      "}._build()\n\n",
+      "}._build()\n",
       "message", name_resolver_->GetClassName(descriptor_, true), "message_kt",
       name_resolver_->GetKotlinExtensionsClassName(descriptor_));
 
@@ -1497,24 +1458,6 @@ void ImmutableMessageGenerator::GenerateTopLevelKotlinMembers(
     if (IsMapEntry(descriptor_->nested_type(i))) continue;
     ImmutableMessageGenerator(descriptor_->nested_type(i), context_)
         .GenerateTopLevelKotlinMembers(printer);
-  }
-
-  GenerateKotlinOrNull(printer);
-}
-
-void ImmutableMessageGenerator::GenerateKotlinOrNull(io::Printer* printer) const {
-  for (int i = 0; i < descriptor_->field_count(); i++) {
-    const FieldDescriptor* field = descriptor_->field(i);
-    if (field->has_presence() && GetJavaType(field) == JAVATYPE_MESSAGE) {
-      printer->Print(
-          "val $full_classname$OrBuilder.$camelcase_name$OrNull: $full_name$?\n"
-          "  get() = if (has$name$()) get$name$() else null\n\n",
-          "full_classname", name_resolver_->GetClassName(descriptor_, true),
-          "camelcase_name", context_->GetFieldGeneratorInfo(field)->name,
-          "full_name",
-          name_resolver_->GetImmutableClassName(field->message_type()), "name",
-          context_->GetFieldGeneratorInfo(field)->capitalized_name);
-    }
   }
 }
 
@@ -1525,7 +1468,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
   printer->Print(
       "@Suppress(\"UNCHECKED_CAST\")\n"
       "@kotlin.jvm.JvmSynthetic\n"
-      "public operator fun <T : kotlin.Any> get(extension: "
+      "operator fun <T> get(extension: "
       "com.google.protobuf.ExtensionLite<$message$, T>): T {\n"
       "  return if (extension.isRepeated) {\n"
       "    get(extension as com.google.protobuf.ExtensionLite<$message$, "
@@ -1541,7 +1484,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
       "@kotlin.OptIn"
       "(com.google.protobuf.kotlin.OnlyForUseByGeneratedProtoCode::class)\n"
       "@kotlin.jvm.JvmName(\"-getRepeatedExtension\")\n"
-      "public operator fun <E : kotlin.Any> get(\n"
+      "operator fun <E> get(\n"
       "  extension: com.google.protobuf.ExtensionLite<$message$, List<E>>\n"
       "): com.google.protobuf.kotlin.ExtensionList<E, $message$> {\n"
       "  return com.google.protobuf.kotlin.ExtensionList(extension, "
@@ -1551,7 +1494,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "public operator fun contains(extension: "
+      "operator fun contains(extension: "
       "com.google.protobuf.ExtensionLite<$message$, *>): "
       "Boolean {\n"
       "  return _builder.hasExtension(extension)\n"
@@ -1560,8 +1503,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "public fun clear(extension: "
-      "com.google.protobuf.ExtensionLite<$message$, *>) "
+      "fun clear(extension: com.google.protobuf.ExtensionLite<$message$, *>) "
       "{\n"
       "  _builder.clearExtension(extension)\n"
       "}\n\n",
@@ -1570,7 +1512,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
       "@kotlin.PublishedApi\n"
-      "internal fun <T : kotlin.Any> setExtension(extension: "
+      "internal fun <T> setExtension(extension: "
       "com.google.protobuf.ExtensionLite<$message$, T>, "
       "value: T) {\n"
       "  _builder.setExtension(extension, value)\n"
@@ -1579,8 +1521,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "@Suppress(\"NOTHING_TO_INLINE\")\n"
-      "public inline operator fun <T : Comparable<T>> set(\n"
+      "inline operator fun <T : Comparable<T>> set(\n"
       "  extension: com.google.protobuf.ExtensionLite<$message$, T>,\n"
       "  value: T\n"
       ") {\n"
@@ -1590,8 +1531,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "@Suppress(\"NOTHING_TO_INLINE\")\n"
-      "public inline operator fun set(\n"
+      "inline operator fun set(\n"
       "  extension: com.google.protobuf.ExtensionLite<$message$, "
       "com.google.protobuf.ByteString>,\n"
       "  value: com.google.protobuf.ByteString\n"
@@ -1602,8 +1542,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "@Suppress(\"NOTHING_TO_INLINE\")\n"
-      "public inline operator fun <T : com.google.protobuf.MessageLite> set(\n"
+      "inline operator fun <T : com.google.protobuf.MessageLite> set(\n"
       "  extension: com.google.protobuf.ExtensionLite<$message$, T>,\n"
       "  value: T\n"
       ") {\n"
@@ -1613,7 +1552,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "public fun <E : kotlin.Any> com.google.protobuf.kotlin.ExtensionList<E, "
+      "fun <E> com.google.protobuf.kotlin.ExtensionList<E, "
       "$message$>.add(value: E) {\n"
       "  _builder.addExtension(this.extension, value)\n"
       "}\n\n",
@@ -1621,9 +1560,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "@Suppress(\"NOTHING_TO_INLINE\")\n"
-      "public inline operator fun <E : kotlin.Any> "
-      "com.google.protobuf.kotlin.ExtensionList<E, "
+      "inline operator fun <E> com.google.protobuf.kotlin.ExtensionList<E, "
       "$message$>.plusAssign"
       "(value: E) {\n"
       "  add(value)\n"
@@ -1632,7 +1569,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "public fun <E : kotlin.Any> com.google.protobuf.kotlin.ExtensionList<E, "
+      "fun <E> com.google.protobuf.kotlin.ExtensionList<E, "
       "$message$>.addAll(values: Iterable<E>) {\n"
       "  for (value in values) {\n"
       "    add(value)\n"
@@ -1642,9 +1579,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "@Suppress(\"NOTHING_TO_INLINE\")\n"
-      "public inline operator fun <E : kotlin.Any> "
-      "com.google.protobuf.kotlin.ExtensionList<E, "
+      "inline operator fun <E> com.google.protobuf.kotlin.ExtensionList<E, "
       "$message$>.plusAssign(values: "
       "Iterable<E>) {\n"
       "  addAll(values)\n"
@@ -1653,8 +1588,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "public operator fun <E : kotlin.Any> "
-      "com.google.protobuf.kotlin.ExtensionList<E, "
+      "operator fun <E> com.google.protobuf.kotlin.ExtensionList<E, "
       "$message$>.set(index: Int, value: "
       "E) {\n"
       "  _builder.setExtension(this.extension, index, value)\n"
@@ -1663,8 +1597,7 @@ void ImmutableMessageGenerator::GenerateKotlinExtensions(
 
   printer->Print(
       "@kotlin.jvm.JvmSynthetic\n"
-      "@Suppress(\"NOTHING_TO_INLINE\")\n"
-      "public inline fun com.google.protobuf.kotlin.ExtensionList<*, "
+      "inline fun com.google.protobuf.kotlin.ExtensionList<*, "
       "$message$>.clear() {\n"
       "  clear(extension)\n"
       "}\n\n",

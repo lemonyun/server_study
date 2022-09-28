@@ -1,47 +1,43 @@
 #pragma once
 
-/*----------------------
+/*-------------------
+	BaseAllocator
+-------------------*/
+
+class BaseAllocator
+{
+public:
+	static void*	Alloc(int32 size);
+	static void		Release(void* ptr);
+};
+
+/*-------------------
 	StompAllocator
-----------------------*/
+-------------------*/
 
 class StompAllocator
 {
 	enum { PAGE_SIZE = 0x1000 };
 
 public:
-	static void* Alloc(int32 size);
-	static void Release(void* ptr);
+	static void*	Alloc(int32 size);
+	static void		Release(void* ptr);
 };
 
-/*----------------------
+/*-------------------
 	PoolAllocator
-----------------------*/
+-------------------*/
 
 class PoolAllocator
 {
-
 public:
-	static void* Alloc(int32 size);
-	static void Release(void* ptr);
+	static void*	Alloc(int32 size);
+	static void		Release(void* ptr);
 };
 
-
-
-/*------------------
-*	BaseAllocator
---------------------*/
-
-class BaseAllocator
-{
-public:
-	static void* Alloc(int32 size);
-	static void Release(void* ptr);
-};
-
-
-/*------------------
+/*-------------------
 	STL Allocator
---------------------*/
+-------------------*/
 
 template<typename T>
 class StlAllocator
@@ -49,10 +45,10 @@ class StlAllocator
 public:
 	using value_type = T;
 
-	StlAllocator() {}
+	StlAllocator() { }
 
 	template<typename Other>
-	StlAllocator(const StlAllocator<Other>&) {}
+	StlAllocator(const StlAllocator<Other>&) { }
 
 	T* allocate(size_t count)
 	{
@@ -64,5 +60,4 @@ public:
 	{
 		PoolAllocator::Release(ptr);
 	}
-
 };

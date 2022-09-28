@@ -156,7 +156,7 @@ template <>
 FieldGeneratorMap<ImmutableFieldLiteGenerator>::~FieldGeneratorMap();
 
 
-// Field information used in FieldGenerators.
+// Field information used in FieldGeneartors.
 struct FieldGeneratorInfo {
   std::string name;
   std::string capitalized_name;

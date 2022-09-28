@@ -96,10 +96,22 @@ class MessageGenerator {
   void GenerateFieldAccessorDeclarations(io::Printer* printer);
   void GenerateFieldAccessorDefinitions(io::Printer* printer);
 
+  // Generate the table-driven parsing array.  Returns the number of entries
+  // generated.
+  size_t GenerateParseOffsets(io::Printer* printer);
+  size_t GenerateParseAuxTable(io::Printer* printer);
+  // Generates a ParseTable entry.  Returns whether the proto uses
+  // table-driven parsing.
+  bool GenerateParseTable(io::Printer* printer, size_t offset,
+                          size_t aux_offset);
+
   // Generate the field offsets array.  Returns the a pair of the total number
   // of entries generated and the index of the first has_bit entry.
   std::pair<size_t, size_t> GenerateOffsets(io::Printer* printer);
   void GenerateSchema(io::Printer* printer, int offset, int has_offset);
+  // For each field generates a table entry describing the field for the
+  // table driven serializer.
+  int GenerateFieldMetadata(io::Printer* printer);
 
   // Generate constructors and destructor.
   void GenerateStructors(io::Printer* printer);
@@ -122,7 +134,6 @@ class MessageGenerator {
   // Generate standard Message methods.
   void GenerateClear(io::Printer* printer);
   void GenerateOneofClear(io::Printer* printer);
-  void GenerateVerify(io::Printer* printer);
   void GenerateSerializeWithCachedSizes(io::Printer* printer);
   void GenerateSerializeWithCachedSizesToArray(io::Printer* printer);
   void GenerateSerializeWithCachedSizesBody(io::Printer* printer);
@@ -165,20 +176,7 @@ class MessageGenerator {
                                std::vector<bool> already_processed,
                                bool copy_constructor) const;
 
-  // Returns the level that this message needs ArenaDtor. If the message has
-  // a field that is not arena-exclusive, it needs an ArenaDtor
-  // (go/proto-destructor).
-  //
-  // - Returning kNone means we don't need to generate ArenaDtor.
-  // - Returning kOnDemand means we need to generate ArenaDtor, but don't need
-  //   to register ArenaDtor at construction. Such as when the message's
-  //   ArenaDtor code is only for destructing inlined string.
-  // - Returning kRequired means we meed to generate ArenaDtor and register it
-  //   at construction.
-  ArenaDtorNeeds NeedsArenaDestructor() const;
-
   size_t HasBitsSize() const;
-  size_t InlinedStringDonatedSize() const;
   int HasBitIndex(const FieldDescriptor* a) const;
   int HasByteIndex(const FieldDescriptor* a) const;
   int HasWordIndex(const FieldDescriptor* a) const;
@@ -198,18 +196,12 @@ class MessageGenerator {
   std::vector<const FieldDescriptor*> optimized_order_;
   std::vector<int> has_bit_indices_;
   int max_has_bit_index_;
-
-  // A map from field index to inlined_string index. For non-inlined-string
-  // fields, the element is -1. If there is no inlined string in the message,
-  // this is empty.
-  std::vector<int> inlined_string_indices_;
-  // The count of inlined_string fields in the message.
-  int max_inlined_string_index_;
-
   std::vector<const EnumGenerator*> enum_generators_;
   std::vector<const ExtensionGenerator*> extension_generators_;
   int num_required_fields_;
   int num_weak_fields_;
+  // table_driven_ indicates the generated message uses table-driven parsing.
+  bool table_driven_;
 
   std::unique_ptr<MessageLayoutHelper> message_layout_helper_;
   std::unique_ptr<ParseFunctionGenerator> parse_function_generator_;
