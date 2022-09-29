@@ -5,7 +5,7 @@
 	JobQueue
 ------------------*/
 
-void JobQueue::Push(JobRef&& job)
+void JobQueue::Push(JobRef job, bool pushOnly)
 {
 	const int32 prevCount = _jobCount.fetch_add(1); // count 증가 후
 	_jobs.Push(job); // 내부적으로 WRITE_LOCK // job을 push (윗줄과 순서가 바뀌면 안됨)
@@ -14,7 +14,7 @@ void JobQueue::Push(JobRef&& job)
 	if (prevCount == 0)
 	{
 		// 이미 실행중인 JobQueue가 없으면 ㅅ실행
-		if (LCurrentJobQueue == nullptr)
+		if (LCurrentJobQueue == nullptr && pushOnly == false)
 		{
 			Execute();
 		}
