@@ -73,7 +73,9 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 
 	PlayerRef player = gameSession->_players[index]; // READ_ONLY?
 	//GRoom.Enter(player); // WRITE_LOCK
-	GRoom.PushJob(MakeShared<EnterJob>(GRoom, player)); // 입장 일감을 예약시켜주고 바로 다음줄로
+	// GRoom.PushJob(MakeShared<EnterJob>(GRoom, player)); // 입장 일감을 예약시켜주고 바로 다음줄로
+
+	GRoom.PushJob(&Room::Enter, player);
 
 	Protocol::S_ENTER_GAME enterGamePkt;
 	enterGamePkt.set_success(true);
@@ -93,7 +95,10 @@ bool Handle_C_CHAT(PacketSessionRef& session, Protocol::C_CHAT& pkt)
 
 	// GRoom.Broadcast(sendBuffer); // WRITE_LOCK
 
-	GRoom.PushJob(MakeShared<BroadCastJob>(GRoom, sendBuffer));
+	//GRoom.PushJob(MakeShared<BroadCastJob>(GRoom, sendBuffer));
 	
+
+	GRoom.PushJob(&Room::Broadcast,sendBuffer);
+
 	return true;
 }
